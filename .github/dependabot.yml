@@ -12,8 +12,8 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "pip"
-      - "dependencies"
+      - "pr/review"
+      - "pr/python/dependabot"
     assignees:
       - "ZenithClown"
     # add commit-message with prefix to determine dependency group
