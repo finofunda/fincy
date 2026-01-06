@@ -1,6 +1,6 @@
 [build-system]
 # minimum system requirements for the build system
-requires = ["setuptools >= 80.9.0", "wheel"]
+requires = ["setuptools >= 80.9.0", "wheel >= 0.43.0", "tomli >= 2.0.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
