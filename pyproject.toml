@@ -47,7 +47,7 @@ classifiers = [
 [project.urls]
 # a list of associated URLs that is displayed on the left sidebar
 # https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
-homepage = "http://zenithclown.github.io/"
+homepage = "https://github.com/finofunda/"
 sourcecode = "https://github.com/finofunda/fincy/"
 
 # list of urls which are developer resources
