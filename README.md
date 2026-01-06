@@ -2,9 +2,9 @@
 
 # 💰 Financial Metrics Toolkit
 
-![issues](https://img.shields.io/github/issues/finofunda/fincy?style=plastic)
-![codeforks](https://img.shields.io/github/forks/finofunda/fincy?style=plastic)
-![stargazers](https://img.shields.io/github/stars/finofunda/fincy?style=plastic)
+[![issues](https://img.shields.io/github/issues/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/issues)
+[![codeforks](https://img.shields.io/github/forks/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/forks)
+[![stargazers](https://img.shields.io/github/stars/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/stargazers)
 ![codeversion](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&style=plastic)
 
 </div>
