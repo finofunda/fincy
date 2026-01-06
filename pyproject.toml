@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 # project metadata to be used and parsed by most backends
-name = "pkg-name"
+name = "fincy"
 
 # dynamic tagging for example of version from __version__ attribute
 # can be rendered easly, but first we need to define it as dynamic
@@ -18,7 +18,7 @@ authors = [
 
 # readme and project descriptions
 readme = "README.md"
-description = "A template repository to start building a Python package."
+description = "A lightweight and extensible Python toolkit for calculating financial metrics."
 
 # python minimum version requirement, must be compatible
 requires-python = ">= 3.11"
@@ -30,7 +30,7 @@ license = {file = "LICENSE"}
 # full classifiers list - https://pypi.org/classifiers/
 classifiers = [
   # maturity/development status of the project
-  "Development Status :: 4 - Beta",
+  "Development Status :: 1 - Planning",
 
   # license information can also be added as a classifier
   "License :: OSI Approved :: MIT License",
@@ -40,14 +40,19 @@ classifiers = [
 
   # list of supported python versions
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11"
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
 ]
 
 [project.urls]
 # a list of associated URLs that is displayed on the left sidebar
 # https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
 homepage = "http://zenithclown.github.io/"
-sourcecode = "https://github.com/ZenithClown/python-git-template"
+sourcecode = "https://github.com/finofunda/fincy/"
+
+# list of urls which are developer resources
+issues = "https://github.com/finofunda/fincy/issues/"
+changelog = "https://github.com/finofunda/fincy/blob/master/CHANGELOG.md/"
 
 [tool.setuptools.dynamic]
-version = {attr = "pkg-name.__version__"}
+version = {attr = "fincy.__version__"}
