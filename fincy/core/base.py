@@ -10,6 +10,7 @@ and APIs can be used to switch between different methods without the
 need to modify the core attributes.
 """
 
+from typing import Any, Optional
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
 
@@ -52,8 +53,13 @@ class FincyAbstractBase(BaseModel, ABC):
     dependent on the currency.
     """
 
-    name : str = Field(..., description = "Model/Method Name")
-    currency : str = Field("₹", description = "Currency Symbol")
+    name : Optional[str] = Field(
+        None, description = "Model/Method Name"
+    )
+
+    currency : Optional[str] = Field(
+        "₹", description = "Currency Symbol"
+    )
 
 
     @property
