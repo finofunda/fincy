@@ -23,6 +23,7 @@ import importlib
 from pathlib import Path
 from setuptools import setup, find_packages
 
+
 def readfile(*filename : str, strip : bool = False) -> str:
     """
     Read a dynamic file by passing relative path to the file
@@ -83,4 +84,4 @@ if __name__ == "__main__":
             include = ["fincy", "fincy.*"],
             exclude = ["tests", "tests.*"]
         ),
-    ) # execute setup tools on file run
+    )
