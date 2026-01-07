@@ -7,6 +7,7 @@
 [![stargazers](https://img.shields.io/github/stars/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/stargazers)
 ![codeversion](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&style=plastic)
 [![Documentation Status](https://readthedocs.org/projects/fincy/badge/?version=latest)](https://fincy.readthedocs.io/en/latest/?badge=latest&style=plastic)
+[![PyPI version](https://img.shields.io/pypi/v/fincy)](https://pypi.org/project/fincy/?style=plastic)
 
 ✨ *A Simple and Robust Python tool for Calculation of Financial Metrices* ✨
 
