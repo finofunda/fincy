@@ -13,6 +13,8 @@
         # F401 module imported but unused, useful for init time
         # F403 '... import *' used; unable to detect undefined names
         fincy/__init__.py: F401, F403
+        fincy/core/__init__.py: F401, F403
+        fincy/errors/__init__.py: F401, F403
 
     # Recommended to restrict in 70 lines, but sometimes violoated,
     # due to long URLs which can be ignored by setting line length.
