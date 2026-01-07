@@ -18,3 +18,6 @@ investments while depreciation values are for calcuations whose values
 depreciates over time - for example a car's value.
 """
 
+from fincy.core.interest import (
+    InterestCalculator
+)
