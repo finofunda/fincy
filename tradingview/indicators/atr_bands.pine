@@ -12,6 +12,9 @@
 // management. Higher volatility expands targets and stops, while
 // calmer markets tighten them. This approach ensures position sizing
 // aligns with current market conditions, improving trade consistency.
+// 
+// Check https://github.com/finofunda/fincy for additional details.
+// TV Profile & Scripts https://in.tradingview.com/u/ZenithClown/
 // ==================================================================
 
 indicator(
