@@ -1,6 +1,6 @@
 <div align = "center">
 
-# 💰 TradingView Scripts
+# 💰 TradingView Scripts 📜
 
 [![tradingview](https://img.shields.io/badge/TradingView-ZenithClown-blue?logo=tradingview&style=plastic)](https://in.tradingview.com/u/ZenithClown/)
 
@@ -26,6 +26,36 @@ dropdown to add them to your chart. Unpublished scripts can be directly added/ed
 
 For more information check [custom indicator](https://www.tradingview.com/charting-library-docs/latest/custom_studies/)
 documentation.
+
+## Table of Content(s)
+
+This section lists all the scripts that are available under my [TV Account](https://in.tradingview.com/u/ZenithClown/). Check
+the script documentation and release notes for more details. TradingView offers different tiers of privacy and code visibility
+settings. Each of the code is marked as below, check
+[docs](https://www.tradingview.com/pine-script-docs/writing/publishing/#publication-settings) for more details.
+
+<div align = "center">
+
+| Section Header | Section Details |
+| :---: | --- |
+| **Privacy Settings** | 👥 Public Visibility  🔒 Private Visibility |
+| **Code Visibility** | 🌐 Open Source  🔑 Protected Script  🤝 Invite Only |
+
+</div>
+
+### TradingView Indicators
+
+An indicator is a function built on the basis of trading statistics (such as opening, closing, minimum or maximum price,
+trading volumes, etc.). Analyzing changes in such values allows predicting the future movement of the market. The values of the
+indicators are displayed on the chart as lines, columns, points, geometric figures, and other visual elements.
+
+<div align = "center">
+
+| Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
+| :---: | :---: | :---: | --- |
+| **ATR SL/Profit Trailing** (ATR Bands) | 🔒🔑 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://www.tradingview.com/script/fu7CCmaC-ATR-SL-Profit-Trailing/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/atr_bands.pine) | |
+
+</div>
 
 ## LICENSE
 
