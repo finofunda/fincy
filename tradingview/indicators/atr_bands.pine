@@ -5,16 +5,16 @@
 
 // ==================================================================
 // OBJECTTIVE : Create an Indicator for ATR Stop Loss and Target
-// 
+//
 // The indicator calculates dynamic target and stop-loss levels using
 // the Average True Range (ATR), adapting to market volatility. ATR
 // measures price movement magnitude, enabling proportional risk
 // management. Higher volatility expands targets and stops, while
 // calmer markets tighten them. This approach ensures position sizing
 // aligns with current market conditions, improving trade consistency.
-// 
+//
 // Check https://github.com/finofunda/fincy for additional details.
-// TV Profile & Scripts https://in.tradingview.com/u/ZenithClown/
+// Check https://in.tradingview.com/u/ZenithClown/ for TV Profile.
 // ==================================================================
 
 indicator(
@@ -68,7 +68,7 @@ stp2ATR = input.float(
 
 // ------------------------------------------------------------------
 // Calculation for ATR Target and Stop Loss
-// 
+//
 // Average True Range (ATR) is a standard indicator which is widely
 // available in any trading platform and also in TradingView. However,
 // the graph and it's value is most of the time is displayed in a
