@@ -1,0 +1,820 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Copywright © 2026 ZenithClown (Debmalya Pramanik) | https://zenithclown.github.io/ | https://www.linkedin.com/in/dpramanik/
+
+//@version=6
+
+// ==================================================================
+// OBJECTTIVE : Create a Trading Strategy based on Pivot Points
+// 
+// The strategy uses the pivot points to calculate entry (long and/or
+// short) and exit conditions to back test the strategy. The robust
+// nature helps in determining the best suitable points that can be
+// used against an instruments.
+// 
+// Default Currency Setting(s)
+// 
+// Currency Unit   : INR
+// Initial Capital : ₹ 1,00,000.00 (₹ 1L)
+// 
+// Default Entry/Exit Condition(s)
+// 
+// Pyramiding Unit  : 2 [no. of entry on each leg]
+// Quantity Type    : 10% of Total Capital
+// Slippage Percent : 5% [inherited from the symbol]
+// 
+// The default settings are designed with thumb rules, and the
+// currency condition is based on Indian market.
+// 
+// Check https://github.com/finofunda/fincy for additional details.
+// Check https://in.tradingview.com/u/ZenithClown/ for TV Profile.
+// ==================================================================
+
+strategy(
+    'Pivot Points Strategy', shorttitle = 'PPS'
+    , overlay = true, currency = currency.INR
+    // Settings for initial capital in the currency unit of choice
+    , initial_capital = 100000
+    // Settings for pyramiding - no. of entry in each direction
+    , pyramiding = 2
+    // Settings for the no. of units during each entry condition
+    , default_qty_type = strategy.percent_of_equity
+    , default_qty_value = 10
+    // calculate only when the current candle is closed
+    , calc_on_every_tick = false
+    // calculate entry/exit on the current candle close
+    , process_orders_on_close = true
+    // Settings for slippage, this is set to 5% (thumb rule)
+    , slippage = 5
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for Pivot Point(s) | Group Name : Pivot Settings
+// ------------------------------------------------------------------
+
+pivotTimeFrame = input.string(
+    'D', 'Pivot Time Frame'
+    , options = [
+        'D', 'W', 'M', '3M', '6M', '12M'
+    ]
+    , group = 'Pivot Settings'
+    , inline = 'PVT'
+)
+
+pivotType = input.string(
+    'Traditional', 'Pivot Type'
+    , options = [
+        'Traditional', 'Fibonacci', 'Woodie', 'Camarilla', 'DM'
+    ]
+    , group = 'Pivot Settings'
+    , inline = 'PVT'
+)
+
+// Control to Show/Hide the Label(s) and Pivot Line(s) from Chart
+
+showPivots = input.bool(
+    true, 'Show Pivot Levels', group = 'Pivot Settings'
+    , inline = 'PVCheck'
+)
+
+showLabels = input.bool(
+    true, 'Show Level Labels', group = 'Pivot Settings'
+    , inline = 'PVCheck'
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for ATR Calculation | Group Name : ATR Settings
+// ------------------------------------------------------------------
+
+atrType = input.string(
+    'RMA', 'MA Type'
+    , options = [
+        'RMA', 'SMA', 'EMA', 'WMA', 'VWMA', 'SMMA (RMA)'
+    ]
+    , group = 'ATR Settings'
+    , inline = 'ATRT'
+)
+
+atrLength = input.int(
+    14, 'ATR Length'
+    , minval = 1
+    , group = 'ATR Settings'
+    , inline = 'ATRT'
+)
+
+// ATR based Target/SL Controls using Standard Multipliers
+
+tgt1ATR = input.float(
+    2.4, '1[th] Target'
+    , group = 'ATR Settings', inline = 'ATRF'
+)
+
+stp1ATR = input.float(
+    1.2, '1[th] Stop Loss'
+    , group = 'ATR Settings', inline = 'ATRF'
+)
+
+tgt2ATR = input.float(
+    2.8, '2[th] Target'
+    , group = 'ATR Settings', inline = 'ATRS'
+)
+
+stp2ATR = input.float(
+    1.4, '2[th] Stop Loss'
+    , group = 'ATR Settings', inline = 'ATRS'
+)
+
+// Show/Hide the ATR Bands which are Potential Target/SL
+
+showBands = input.bool(
+    false, 'Show ATR Target/SL Band(s)'
+    , group = 'ATR Settings'
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for Entry Condition(s) | Group Name : Entry Rules
+// ------------------------------------------------------------------
+
+allowShorts = input.bool(
+    false, 'Enable Short Positions'
+    , tooltip = 'Enable Short Selling (disabled by default).'
+    , group = 'Entry Rules'
+)
+
+usePivot = input.bool(
+    false, 'Trade on Pivot Level (P)'
+    , tooltip = 'Trigger Trades at Pivot Level (disabled by default).'
+    , group = 'Entry Rules'
+)
+
+useSupport = input.bool(
+    true, 'Trade on Support Levels (S*)'
+    , tooltip = 'Trigger Trades at Support Levels (enabled by default).'
+    , group = 'Entry Rules'
+)
+
+useResistance = input.bool(
+    true, 'Trade on Resistance Levels (R*)'
+    , tooltip = 'Trigger Trades at Resistance Levels (enabled by default).'
+    , group = 'Entry Rules'
+)
+
+// Long Entry Signal Setting(s)
+
+longEntryType = input.string(
+    'Percentage', 'Long Entry Type'
+    , options = [
+        'Bounce', 'Break Above', 'Percentage'
+    ]
+    , group = 'Entry Rules'
+)
+
+longEntryThreshold = input.float(
+    1.0, 'Long Entry (%) Above Pivot Level'
+    , minval = 0.0, maxval = 100.0, step = 0.1
+    , group = 'Entry Rules'
+    , tooltip = 'Enter Long when Close Price Above Percentage.'
+)
+
+// Short Entry Signal Setting(s)
+
+shortEntryType = input.string(
+    'Percentage', 'Short Entry Type'
+    , options = [
+        'Rejection', 'Break Below', 'Percentage'
+    ]
+    , group = 'Entry Rules'
+)
+
+shortEntryThreshold = input.float(
+    1.0, 'Short Entry (%) Below Pivot Level'
+    , minval = 0.0, maxval = 100.0, step = 0.1
+    , group = 'Entry Rules'
+    , tooltip = 'Enter Short when Close Price Below Percentage.'
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for Exit Conditions | Group Name : Exit Rules
+// ------------------------------------------------------------------
+
+takeProfitPct = input.float(
+    2.0, 'Take Profit %'
+    , minval = 0.1, step = 1.0
+    , group = 'Exit Rules'
+)
+
+stopLossPct = input.float(
+    1.0, 'Stop Loss %'
+    , minval = 0.1, step = 0.1
+    , group = 'Exit Riles'
+)
+
+useTrailingStop = input.bool(
+    false, 'Use Trailing Stop Loss'
+    , group = 'Exit Rules'
+)
+
+trailingStopPct = input.float(
+    0.5, 'Trailing Stop Loss %'
+    , group = 'Exit Riles'
+)
+
+useNextLevel = input.bool(
+    true, 'Exit at Next Pivot Level'
+    , group = 'Exit Rules'
+    , tooltip = 'Take Profit when Reaching Next Pivot Level.'
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for Display Settings | Group Name : Display Settings
+// 
+// By default, the back testing panel show cases number of useful
+// information about the strategy with important performance metrics.
+// To tweak further, some metrics values can be showcased in the
+// overlay screen with values/conditional formattings, as below.
+// ------------------------------------------------------------------
+
+showPerformance = input.bool(
+    false, 'Show Performance Metrics'
+    , group = 'Display Settings'
+)
+
+performanceTablePos = input.string(
+    'Middle Right', 'Performance Table Position'
+    , options = [
+        'Top Left', 'Top Center', 'Top Right',
+        'Middle Left', 'Middle Center', 'Middle Right',
+        'Bottom Left', 'Bottom Center', 'Bottom Right'
+    ]
+    , group = 'Display Settings'
+)
+
+performanceTableSize = input.string(
+    'tiny', 'Performance Table Size'
+    , options = [
+        'auto', 'tiny', 'small', 'normal', 'large', 'huge'
+    ]
+    , group = 'Display Settings'
+)
+
+// ------------------------------------------------------------------
+// Pivot Point Calculations
+// 
+// The pivot points are calculated based on the selected calculation
+// type, which has a different calculations as follows:
+// 
+// Traditional/Standard Pivot Points
+// Most commonly used method, this is best suited for day traders,
+// general usages, and for trending markets. The traditional pivots
+// is a standard approach followed worldwide.
+// 
+// Fibonacci Pivot Points
+// Uses Fibonacci ratios (38.2%, 61.8%, 100.0%) for calculation of
+// pivot points; best suited for swing traders and markets respecting
+// Fibonacci points. This is widely used in FOREX trading.
+// 
+// Woodie Pivot Points
+// Calculates pivot points by giving more weightage to closing price;
+// best suited for intraday traders who values closing price.
+// 
+// Camarilla Pivot Points
+// Pivot points are calculated by focusing on price returning to mean;
+// this is best suited for range-bound markets, mean-reversion
+// strategies and in scalping.
+// 
+// DeMark (DM) Pivot Points
+// Developed by Tom Demark the calculation is based on the opening and
+// closing price relationship; popular among short-term traders and
+// in a highly-volatile market.
+// 
+// 
+// Additional Notes
+// 
+// Indian Equity Markets - Traditional/Camarilla Pivot Points
+// Trending Stocks       - Traditional/Fibonacci Pivot Points
+// Range-Bound Stocks    - Camarilla Pivot Points
+// High Volatility       - DeMark (DM) Pivot Points
+// Intraday Trading      - Woodie/Camarilla Pivot Points
+// 
+// 
+// Abbreviation(s) for Parameters
+// 
+// HFT : Higher Time Frame
+// The term "higher" refers to a time frame that is longer/higher than
+// the current chart time frame.
+// ------------------------------------------------------------------
+
+[htfOpen, htfLow, htfHigh, htfClose] = request.security(
+    syminfo.tickerid, pivotTimeFrame,
+    [open[1], low[1], high[1], close[1]]
+    , lookahead = barmerge.lookahead_on
+)
+
+// Calculate the Current Candle Range
+priceRange = htfHigh - htfLow
+
+// Initialize Pivot Variables, all defaults to na
+var float pp = na
+var float r1 = na
+var float r2 = na
+var float r3 = na
+var float r4 = na
+var float r5 = na
+var float s1 = na
+var float s2 = na
+var float s3 = na
+var float s4 = na
+var float s5 = na
+
+// ? Calculate Pivot Variables based on above Selections
+switch pivotType
+    'Traditional' =>
+        pp := (htfHigh + htfLow + htfClose) / 3
+        r1 := 2 * pp - htfLow
+        s1 := 2 * pp - htfHigh
+        r2 := pp + priceRange
+        s2 := pp - priceRange
+        r3 := htfHigh + 2 * (pp - htfLow)
+        s3 := htfLow - 2 * (htfHigh - pp)
+    'Fibonacci' =>
+        pp := (htfHigh + htfLow + htfClose) / 3
+        r1 := pp + 0.382 * priceRange
+        s1 := pp - 0.382 * priceRange
+        r2 := pp + 0.618 * priceRange
+        s2 := pp - 0.618 * priceRange
+        r3 := pp + 1.000 * priceRange
+        s3 := pp - 1.000 * priceRange
+    'Woodie' =>
+        pp := (htfHigh + htfLow + 2 * htfClose) / 4
+        r1 := 2 * pp - htfLow
+        s1 := 2 * pp - htfHigh
+        r2 := pp + priceRange
+        s2 := pp - priceRange
+    'Camarilla' =>
+        pp := (htfHigh + htfLow + htfClose) / 3
+        r1 := htfClose + priceRange * 1.1 / 12
+        s1 := htfClose - priceRange * 1.1 / 12
+        r2 := htfClose + priceRange * 1.1 / 6
+        s2 := htfClose - priceRange * 1.1 / 6
+        r3 := htfClose + priceRange * 1.1 / 4
+        s3 := htfClose - priceRange * 1.1 / 4
+        r4 := htfClose + priceRange * 1.1 / 2
+        s4 := htfClose - priceRange * 1.1 / 2
+    'DM' =>
+        x = htfClose < htfOpen ? htfHigh + 2 * htfLow + htfClose : htfClose > htfOpen ? 2 * htfHigh + htfLow + htfClose : htfHigh + htfLow + 2 * htfClose
+        pp := x / 4
+        r1 := x / 2 - htfLow
+        s1 := x / 2 - htfHigh
+
+// ------------------------------------------------------------------
+// Calculation for ATR Target and Stop Loss
+// 
+// The ATR based targets and stop loss is a standard measure and is
+// widely used to define target and stop loss on an instrument. Check
+// more details in the ATR SL/Profit Trailing script.
+// ------------------------------------------------------------------
+
+
+
+// ------------------------------------------------------------------
+// Visualization of Pivot Points as Continuous Line & Label Display
+// ------------------------------------------------------------------
+
+plot(showPivots ? pp : na, 'PP', color = #FFD700)
+plot(showPivots and not na(r1) ? r1 : na, 'R1', color = #FF8C00)
+plot(showPivots and not na(r2) ? r2 : na, 'R2', color = #FF4500)
+plot(showPivots and not na(r3) ? r3 : na, 'R3', color = #FF0000)
+plot(showPivots and not na(s1) ? s1 : na, 'S1', color = #FFFF00)
+plot(showPivots and not na(s2) ? s2 : na, 'S2', color = #9ACD32)
+plot(showPivots and not na(s3) ? s3 : na, 'S3', color = #32CD32)
+
+if showLabels and barstate.islast
+    label.new(
+        bar_index, pp, 'PP', style = label.style_label_left
+        , color = #FFD700, textcolor = color.black, size = size.tiny
+    )
+
+    if not na(r1)
+        label.new(
+            bar_index, r1, 'R1', style = label.style_label_left
+            , color = #FF8C00, textcolor = color.black, size = size.tiny
+        )
+
+    if not na(r2)
+        label.new(
+            bar_index, r2, 'R2', style = label.style_label_left
+            , color = #FF4500, textcolor = color.black, size = size.tiny
+        )
+
+    if not na(r3)
+        label.new(
+            bar_index, r3, 'R3', style = label.style_label_left
+            , color = #FF0000, textcolor = color.black, size = size.tiny
+        )
+
+    if not na(s1)
+        label.new(
+            bar_index, s1, 'S1', style = label.style_label_left
+            , color = #FFFF00, textcolor = color.black, size = size.tiny
+        )
+
+    if not na(s2)
+        label.new(
+            bar_index, s2, 'S2', style = label.style_label_left
+            , color = #9ACD32, textcolor = color.black, size = size.tiny
+        )
+
+    if not na(s3)
+        label.new(
+            bar_index, s3, 'S3', style = label.style_label_left
+            , color = #32CD32, textcolor = color.black, size = size.tiny
+        )
+
+// ==================================================================
+// Strategy Entry Conditions
+// 
+// The entry conditions are deterministic and is based on the above
+// input conditions. The helper functions are defined below for
+// detection and calculation.
+// ==================================================================
+
+bounceOffLevel(level) =>
+    low <= level * 1.002 and low >= level * 0.998 and close > level
+
+breakAboveLevel(level) =>
+    close[1] <= level and close > level and close > open
+
+aboveLevel(level, thresholdPct) =>
+    close > level * (1 + thresholdPct / 100)
+
+rejectionAtLevel(level) =>
+    high >= level * 0.998 and high <= level * 1.002 and close < level
+
+breakBelowLevel(level) =>
+    close[1] >= level and close < level and close < open
+
+belowLevel(level, thresholdPct) =>
+    close < level * (1 - thresholdPct / 100)
+
+// Long Entry Conditions
+longCondition = false
+
+// Determine which detection function to use based on entry type
+if longEntryType == 'Bounce'
+    if useSupport and not na(s1)
+        longCondition := longCondition or bounceOffLevel(s1)
+        longCondition
+    if useSupport and not na(s2)
+        longCondition := longCondition or bounceOffLevel(s2)
+        longCondition
+    if useSupport and not na(s3)
+        longCondition := longCondition or bounceOffLevel(s3)
+        longCondition
+    if useSupport and not na(s4)
+        longCondition := longCondition or bounceOffLevel(s4)
+        longCondition
+    if usePivot
+        longCondition := longCondition or bounceOffLevel(pp)
+        longCondition
+
+else if longEntryType == 'Break Above'
+    if useResistance and not na(r1)
+        longCondition := longCondition or breakAboveLevel(r1)
+        longCondition
+    if useResistance and not na(r2)
+        longCondition := longCondition or breakAboveLevel(r2)
+        longCondition
+    if useResistance and not na(r3)
+        longCondition := longCondition or breakAboveLevel(r3)
+        longCondition
+    if useResistance and not na(r4)
+        longCondition := longCondition or breakAboveLevel(r4)
+        longCondition
+    if usePivot
+        longCondition := longCondition or breakAboveLevel(pp)
+        longCondition
+
+else if longEntryType == 'Percentage'
+    if useSupport and not na(s1)
+        longCondition := longCondition or aboveLevel(s1, longEntryThreshold)
+        longCondition
+    if useSupport and not na(s2)
+        longCondition := longCondition or aboveLevel(s2, longEntryThreshold)
+        longCondition
+    if useSupport and not na(s3)
+        longCondition := longCondition or aboveLevel(s3, longEntryThreshold)
+        longCondition
+    if useSupport and not na(s4)
+        longCondition := longCondition or aboveLevel(s4, longEntryThreshold)
+        longCondition
+    if usePivot
+        longCondition := longCondition or aboveLevel(pp, longEntryThreshold)
+        longCondition
+    if useResistance and not na(r1)
+        longCondition := longCondition or aboveLevel(r1, longEntryThreshold)
+        longCondition
+    if useResistance and not na(r2)
+        longCondition := longCondition or aboveLevel(r2, longEntryThreshold)
+        longCondition
+    if useResistance and not na(r3)
+        longCondition := longCondition or aboveLevel(r3, longEntryThreshold)
+        longCondition
+    if useResistance and not na(r4)
+        longCondition := longCondition or aboveLevel(r4, longEntryThreshold)
+        longCondition
+
+// Short Entry Conditions (only if enabled)
+shortCondition = false
+
+if allowShorts
+    // Determine which detection function to use based on entry type
+    if shortEntryType == 'Rejection'
+        if useResistance and not na(r1)
+            shortCondition := shortCondition or rejectionAtLevel(r1)
+            shortCondition
+        if useResistance and not na(r2)
+            shortCondition := shortCondition or rejectionAtLevel(r2)
+            shortCondition
+        if useResistance and not na(r3)
+            shortCondition := shortCondition or rejectionAtLevel(r3)
+            shortCondition
+        if useResistance and not na(r4)
+            shortCondition := shortCondition or rejectionAtLevel(r4)
+            shortCondition
+        if usePivot
+            shortCondition := shortCondition or rejectionAtLevel(pp)
+            shortCondition
+
+    else if shortEntryType == 'Break Below'
+        if useSupport and not na(s1)
+            shortCondition := shortCondition or breakBelowLevel(s1)
+            shortCondition
+        if useSupport and not na(s2)
+            shortCondition := shortCondition or breakBelowLevel(s2)
+            shortCondition
+        if useSupport and not na(s3)
+            shortCondition := shortCondition or breakBelowLevel(s3)
+            shortCondition
+        if useSupport and not na(s4)
+            shortCondition := shortCondition or breakBelowLevel(s4)
+            shortCondition
+        if usePivot
+            shortCondition := shortCondition or breakBelowLevel(pp)
+            shortCondition
+
+    else if shortEntryType == 'Percentage'
+        if useResistance and not na(r1)
+            shortCondition := shortCondition or belowLevel(r1, shortEntryThreshold)
+            shortCondition
+        if useResistance and not na(r2)
+            shortCondition := shortCondition or belowLevel(r2, shortEntryThreshold)
+            shortCondition
+        if useResistance and not na(r3)
+            shortCondition := shortCondition or belowLevel(r3, shortEntryThreshold)
+            shortCondition
+        if useResistance and not na(r4)
+            shortCondition := shortCondition or belowLevel(r4, shortEntryThreshold)
+            shortCondition
+        if usePivot
+            shortCondition := shortCondition or belowLevel(pp, shortEntryThreshold)
+            shortCondition
+        if useSupport and not na(s1)
+            shortCondition := shortCondition or belowLevel(s1, shortEntryThreshold)
+            shortCondition
+        if useSupport and not na(s2)
+            shortCondition := shortCondition or belowLevel(s2, shortEntryThreshold)
+            shortCondition
+        if useSupport and not na(s3)
+            shortCondition := shortCondition or belowLevel(s3, shortEntryThreshold)
+            shortCondition
+        if useSupport and not na(s4)
+            shortCondition := shortCondition or belowLevel(s4, shortEntryThreshold)
+            shortCondition
+
+// ============================================================================
+// POSITION MANAGEMENT
+// ============================================================================
+
+// Calculate stop loss and take profit levels
+var float longStopLoss = na
+var float longTakeProfit = na
+var float shortStopLoss = na
+var float shortTakeProfit = na
+var float longPeakPrice = na
+var float shortLowPrice = na
+
+// Long Position
+if longCondition and strategy.position_size == 0
+    longStopLoss := close * (1 - stopLossPct / 100)
+    longPeakPrice := close
+    if useNextLevel
+        // Find next resistance level above current price
+        if not na(r1) and close < r1
+            longTakeProfit := r1
+            longTakeProfit
+        else if not na(r2) and close < r2
+            longTakeProfit := r2
+            longTakeProfit
+        else if not na(r3) and close < r3
+            longTakeProfit := r3
+            longTakeProfit
+        else if not na(r4) and close < r4
+            longTakeProfit := r4
+            longTakeProfit
+        else
+            longTakeProfit := close * (1 + takeProfitPct / 100)
+            longTakeProfit
+    else
+        longTakeProfit := close * (1 + takeProfitPct / 100)
+        longTakeProfit
+
+    strategy.entry('Long', strategy.long)
+
+// Update trailing stop for long positions
+if strategy.position_size > 0
+    if useTrailingStop
+        // Track peak price
+        if close > longPeakPrice
+            longPeakPrice := close
+            longPeakPrice
+        // Update trailing stop
+        trailingStop = longPeakPrice * (1 - trailingStopPct / 100)
+        if trailingStop > longStopLoss
+            longStopLoss := trailingStop
+            longStopLoss
+
+// Short Position
+if allowShorts and shortCondition and strategy.position_size == 0
+    shortStopLoss := close * (1 + stopLossPct / 100)
+    shortLowPrice := close
+    if useNextLevel
+        // Find next support level below current price
+        if not na(s1) and close > s1
+            shortTakeProfit := s1
+            shortTakeProfit
+        else if not na(s2) and close > s2
+            shortTakeProfit := s2
+            shortTakeProfit
+        else if not na(s3) and close > s3
+            shortTakeProfit := s3
+            shortTakeProfit
+        else if not na(s4) and close > s4
+            shortTakeProfit := s4
+            shortTakeProfit
+        else
+            shortTakeProfit := close * (1 - takeProfitPct / 100)
+            shortTakeProfit
+    else
+        shortTakeProfit := close * (1 - takeProfitPct / 100)
+        shortTakeProfit
+
+    strategy.entry('Short', strategy.short)
+
+// Update trailing stop for short positions
+if strategy.position_size < 0
+    if useTrailingStop
+        // Track lowest price
+        if close < shortLowPrice
+            shortLowPrice := close
+            shortLowPrice
+        // Update trailing stop
+        trailingStop = shortLowPrice * (1 + trailingStopPct / 100)
+        if trailingStop < shortStopLoss
+            shortStopLoss := trailingStop
+            shortStopLoss
+
+// Exit conditions
+if strategy.position_size > 0
+    strategy.exit('Exit Long', 'Long', stop = longStopLoss, limit = longTakeProfit)
+
+if strategy.position_size < 0
+    strategy.exit('Exit Short', 'Short', stop = shortStopLoss, limit = shortTakeProfit)
+
+// ============================================================================
+// POSITION VISUALIZATION
+// ============================================================================
+
+// Plot stop loss and take profit levels for active positions
+plot(strategy.position_size > 0 ? longStopLoss : na, 'Long SL', color = color.red, style = plot.style_cross, linewidth = 2)
+plot(strategy.position_size > 0 ? longTakeProfit : na, 'Long TP', color = color.green, style = plot.style_cross, linewidth = 2)
+plot(strategy.position_size < 0 ? shortStopLoss : na, 'Short SL', color = color.red, style = plot.style_cross, linewidth = 2)
+plot(strategy.position_size < 0 ? shortTakeProfit : na, 'Short TP', color = color.green, style = plot.style_cross, linewidth = 2)
+
+// Background color for active positions
+bgcolor(strategy.position_size > 0 ? color.new(color.green, 95) : strategy.position_size < 0 ? color.new(color.red, 95) : na)
+
+// ============================================================================
+// PERFORMANCE METRICS CALCULATION
+// ============================================================================
+
+// Helper function to convert string position to table position
+getTablePosition(pos) =>
+    pos == 'Top Left' ? position.top_left : pos == 'Top Center' ? position.top_center : pos == 'Top Right' ? position.top_right : pos == 'Middle Left' ? position.middle_left : pos == 'Middle Center' ? position.middle_center : pos == 'Middle Right' ? position.middle_right : pos == 'Bottom Left' ? position.bottom_left : pos == 'Bottom Center' ? position.bottom_center : position.bottom_right
+
+// Helper function to convert string size to table size
+getTableSize(sz) =>
+    sz == 'auto' ? size.auto : sz == 'tiny' ? size.tiny : sz == 'small' ? size.small : sz == 'normal' ? size.normal : sz == 'large' ? size.large : size.huge
+
+// Calculate trade P&L
+var array<float> tradePnL = array.new_float(0)
+var float runningPnL = 0.0
+
+if strategy.closedtrades > array.size(tradePnL)
+    lastTradePnL = strategy.closedtrades.profit(strategy.closedtrades - 1)
+    array.push(tradePnL, lastTradePnL)
+    runningPnL := runningPnL + lastTradePnL
+    runningPnL
+
+// Performance Metrics Table
+if showPerformance and barstate.islast
+    var table perfTable = table.new(getTablePosition(performanceTablePos), 2, 12, border_width = 1, border_color = color.gray, frame_width = 1, frame_color = color.gray)
+
+    totalTrades = strategy.closedtrades
+    winningTrades = strategy.wintrades
+    losingTrades = strategy.losstrades
+
+    winRate = totalTrades > 0 ? winningTrades / totalTrades * 100 : 0
+
+    // Calculate statistics
+    totalPnL = runningPnL
+    avgPnL = totalTrades > 0 ? totalPnL / totalTrades : 0
+
+    // Sort array for percentile calculations
+    var array<float> sortedPnL = array.new_float(0)
+    if array.size(tradePnL) > 0
+        array.clear(sortedPnL)
+        array.concat(sortedPnL, tradePnL)
+        array.sort(sortedPnL, order.ascending)
+
+    medianPnL = 0.0
+    percentile90 = 0.0
+    percentile95 = 0.0
+
+    arrSize = array.size(sortedPnL)
+    if arrSize > 0
+        medianPnL := arrSize % 2 == 0 ? (array.get(sortedPnL, arrSize / 2 - 1) + array.get(sortedPnL, arrSize / 2)) / 2 : array.get(sortedPnL, math.floor(arrSize / 2))
+        percentile90 := array.get(sortedPnL, math.floor(arrSize * 0.90))
+        percentile95 := array.get(sortedPnL, math.floor(arrSize * 0.95))
+        percentile95
+
+    avgLoss = losingTrades > 0 ? strategy.grossloss / losingTrades : 0
+    medianLoss = 0.0
+
+    // Calculate median loss
+    var array<float> losses = array.new_float(0)
+    array.clear(losses)
+    for i = 0 to array.size(tradePnL) - 1 by 1
+        if array.get(tradePnL, i) < 0
+            array.push(losses, array.get(tradePnL, i))
+
+    if array.size(losses) > 0
+        array.sort(losses, order.ascending)
+        lossSize = array.size(losses)
+        medianLoss := lossSize % 2 == 0 ? (array.get(losses, lossSize / 2 - 1) + array.get(losses, lossSize / 2)) / 2 : array.get(losses, math.floor(lossSize / 2))
+        medianLoss
+
+    maxDrawdown = strategy.max_drawdown
+
+    // Table headers
+    table.cell(perfTable, 0, 0, 'Performance Metrics', text_color = color.white, bgcolor = color.blue, text_size = getTableSize(performanceTableSize))
+    table.merge_cells(perfTable, 0, 0, 1, 0)
+
+    // Metrics
+    row = 1
+    table.cell(perfTable, 0, row, 'Total Trades', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(totalTrades), text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Total P&L', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(totalPnL, '₹#,###.##'), text_color = totalPnL >= 0 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Win Rate', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(winRate, '#.##') + '%', text_color = winRate >= 50 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Average P&L', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(avgPnL, '₹#,###.##'), text_color = avgPnL >= 0 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Median P&L', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(medianPnL, '₹#,###.##'), text_color = medianPnL >= 0 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, '90% Percentile P&L', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(percentile90, '₹#,###.##'), text_color = percentile90 >= 0 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, '95% Percentile P&L', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(percentile95, '₹#,###.##'), text_color = percentile95 >= 0 ? color.green : color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Average Loss', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(avgLoss, '₹#,###.##'), text_color = color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Median Loss', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(medianLoss, '₹#,###.##'), text_color = color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+
+    row := row + 1
+    table.cell(perfTable, 0, row, 'Max Drawdown', text_color = color.white, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
+    table.cell(perfTable, 1, row, str.tostring(maxDrawdown, '₹#,###.##'), text_color = color.red, bgcolor = color.gray, text_size = getTableSize(performanceTableSize))
