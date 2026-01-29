@@ -1,6 +1,6 @@
 <div align = "center">
 
-# 💰 Financial Metrics Toolkit
+# 💰 Financial Metrics Toolkit 💰
 
 [![issues](https://img.shields.io/github/issues/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/issues)
 [![codeforks](https://img.shields.io/github/forks/finofunda/fincy?style=plastic)](https://github.com/finofunda/fincy/forks)
@@ -18,8 +18,37 @@ seamlessly with **external systems** through connectors, this project emphasizes
 
 ## Getting Started
 
-The Python code is hosted at [PyPI/fincy](https://pypi.org/project/fincy/), check installation instructions and usages for
-more details. For indicators, strategies in TradingView follow [README](./tradingview/README.md) for details.
+Project **`fincy`** is a two-part project - (i) a Python library that can be seamlessly integrated to perform back-testing and
+other "AI" related stuffs, and (ii) a source control for TradingView's scripts that are hosted from my
+[account](https://in.tradingview.com/u/ZenithClown/). Python project is hosted at
+[GitHub/fincy](https://github.com/finofunda/fincy) and can be installed using Python Package Index (PyPI) as:
+
+```shell
+pip install fincy
+```
+
+### Installation from Source
+
+To install the Python package `fincy` from source code, you need *git* client in your system, to clone the project in
+your system as follows.
+
+```shell
+git clone https://github.com/finofunda/fincy.git
+```
+
+You can now directly install the package using the `pip` package manager from the `fincy` (same one where you found
+this file after cloning the git repo) directory, execute:
+
+```shell
+pip install -r requirements.txt  # install the package dependencies
+pip install .                    # install the package in the host machine
+```
+
+### TradingView Scripts
+
+TradingView's community hosting page provides a great interface for code documentation, release notes and other
+essential things. Check individual script notes as mention under [`./tradingview/README.md`](./tradingview/README.md)
+file with additional details.
 
 ## LICENSE
 
