@@ -18,7 +18,7 @@ seamlessly with **external systems** through connectors, this project emphasizes
 
 ## LICENSE
 
-The project is available under MIT License, while all the conents under the **./tradingview/`** follows MPL 2.0 License by
+The project is available under MIT License, while all the conents under the **`./tradingview/`** follows MPL 2.0 License by
 default as per TradingView & PineScript policies.
 
 </div>
