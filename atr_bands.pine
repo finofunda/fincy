@@ -1,0 +1,99 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Copywright © 2024 ZenithClown (Debmalya Pramanik) | https://zenithclown.github.io/ | https://www.linkedin.com/in/dpramanik/
+
+//@version=6
+
+// ==================================================================
+// OBJECTTIVE : Create an Indicator for ATR Stop Loss and Target
+// 
+// The indicator calculates dynamic target and stop-loss levels using
+// the Average True Range (ATR), adapting to market volatility. ATR
+// measures price movement magnitude, enabling proportional risk
+// management. Higher volatility expands targets and stops, while
+// calmer markets tighten them. This approach ensures position sizing
+// aligns with current market conditions, improving trade consistency.
+// ==================================================================
+
+indicator(
+    'ATR SL/Profit Trailing', shorttitle = 'ATR Bands'
+    // Overlay the bands over the original chart, main objective
+    , overlay = true
+    // Allow arbitary timeframe for drawing the bands and extrapolate
+    , timeframe = ''
+    , timeframe_gaps = true
+)
+
+// ------------------------------------------------------------------
+// INPUT(s) for ATR Calculations
+// ------------------------------------------------------------------
+
+atrType = input.string(
+    'RMA', 'ATR MA Type'
+    , options = [
+        'RMA', 'SMA', 'EMA', 'WMA', 'VWMA', 'SMMA (RMA)'
+    ]
+    , group = 'ATR Settings'
+)
+
+atrLength = input.int(
+    14, 'ATR Length'
+    , minval = 1
+    , group = 'ATR Settings'
+)
+
+// ATR based Target/SL Controls using Standard Multipliers
+
+tgt1ATR = input.float(
+    2.4, 'First Target'
+    , group = 'Target Settings'
+)
+
+tgt2ATR = input.float(
+    2.8, 'Second Target'
+    , group = 'Target Settings'
+)
+
+stp1ATR = input.float(
+    1.2, 'First SL'
+    , group = 'Stop Loss Setting'
+)
+
+stp2ATR = input.float(
+    1.4, 'Second SL'
+    , group = 'Stop Loss Setting'
+)
+
+// ------------------------------------------------------------------
+// Calculation for ATR Target and Stop Loss
+// 
+// Average True Range (ATR) is a standard indicator which is widely
+// available in any trading platform and also in TradingView. However,
+// the graph and it's value is most of the time is displayed in a
+// seperate graph below the main chart. The indicator brings the same
+// values on the chart overlay thus reducing manual calculation
+// effort and use it with other indicators for faster analysis. By
+// default the target and stop loss are defined with a 2:1 reward to
+// risk ratio and can be changed as per requirement.
+// ------------------------------------------------------------------
+
+calculate(source, length, selectedType) =>
+    switch selectedType
+        'RMA' => ta.rma(source, length)
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'WMA' => ta.wma(source, length)
+        'VWMA' => ta.vwma(source, length)
+        'SMMA (RMA)' => ta.rma(source, length)
+
+// ? use the in-built function to calculate continuous value
+basis = calculate(ta.tr(true), atrLength, atrType)
+ticks = request.security(syminfo.tickerid, timeframe.period, close)
+
+// ------------------------------------------------------------------
+// Visualization of ATR Target/SL Level(s) on the Overlay Graph
+// ------------------------------------------------------------------
+plot(ticks - (basis * stp1ATR), 'First SL', color = #CF3340)
+plot(ticks - (basis * stp2ATR), 'Second SL', color = #F14755)
+
+plot(ticks + (basis * tgt1ATR), 'First Target', color = #089981)
+plot(ticks + (basis * tgt2ATR), 'Second Target', color = #55CCB8)
