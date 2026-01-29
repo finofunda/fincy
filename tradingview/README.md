@@ -57,6 +57,18 @@ indicators are displayed on the chart as lines, columns, points, geometric figur
 
 </div>
 
+### TradingView Strategies
+
+A strategy is a Pine Script code - a very powerful script that can perform - (i) backtesting of a concept on the historical
+data and (ii) can send/execute buy/sell orders for an instrument.
+
+<div align = "center">
+
+| Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
+| :---: | :---: | :---: | --- |
+
+</div>
+
 ## LICENSE
 
 All the indicators, strategies follows MPL 2.0 License which is default for the PineScript. Check the
