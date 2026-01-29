@@ -16,4 +16,9 @@
 A lightweight and extensible Python toolkit for calculating financial metrics. Designed to work **standalone** or integrate
 seamlessly with **external systems** through connectors, this project emphasizes clarity, validation, and modular architecture.
 
+## LICENSE
+
+The project is available under MIT License, while all the conents under the **./tradingview/`** follows MPL 2.0 License by
+default as per TradingView & PineScript policies.
+
 </div>
