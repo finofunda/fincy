@@ -16,6 +16,11 @@
 A lightweight and extensible Python toolkit for calculating financial metrics. Designed to work **standalone** or integrate
 seamlessly with **external systems** through connectors, this project emphasizes clarity, validation, and modular architecture.
 
+## Getting Started
+
+The Python code is hosted at [PyPI/fincy](https://pypi.org/project/fincy/), check installation instructions and usages for
+more details. For indicators, strategies in TradingView follow [README](./tradingview/README.md) for details.
+
 ## LICENSE
 
 The project is available under MIT License, while all the conents under the **`./tradingview/`** follows MPL 2.0 License by
