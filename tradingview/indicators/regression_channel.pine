@@ -6,15 +6,17 @@
 // ==================================================================
 // OBJECTTIVE: Create a Regression Channel & Forward Forecast
 //
+// A regression channel (linear, exponential, etc.) can potentially
+// show the movement of the market over a period of time. Typically
+// an instrument move in a direction thus a linear regression can be
+// useful to predict the potential flow, while exponential channel can
+// be useful for a crypto currency like asset.
+//
 // Check https://github.com/finofunda/fincy for additional details.
 // Check https://in.tradingview.com/u/ZenithClown/ for TV Profile.
 // ==================================================================
 
-indicator(
-    'Regression Channel'
-    // Overlay the bands over the original chart, main objective
-    , overlay = true
-)
+indicator('Regression Channel', overlay = true)
 
 // ------------------------------------------------------------------
 // INPUT(s) for Regression Channel Calculation(s)
@@ -147,19 +149,49 @@ linearRegression(source, length) =>
         [slope, average, intercept]
 
 
-linearDeviation(source, length) =>
-    lrc0 = ta.linreg(source, length, 0)
-    lrc1 = ta.linreg(source, length, 1)
+linearDeviation(source, length, slope, average, intercept) =>
+    upperDeviation = 0.0
+    lowerDeviation = 0.0
 
-    lrcSlope = lrc0 - lrc1
-    lrcIntercept = lrc0 - bar_index * lrcSlope
+    standardDeviationAccum = 0.0
 
-    deviationSum = 0.0
-    for z = 0 to length - 1 by 1
-        deviationSum := deviationSum + math.pow(source[z] - (lrcSlope * (bar_index - z) + lrcIntercept), 2)
+    dsxx = 0.0
+    dsyy = 0.0
+    dsxy = 0.0
 
-    deviation = math.sqrt(deviationSum / length)
-    [deviation]
+    periods = length - 1
+    daY = intercept + slope * periods / 2
+
+    interceptCopy = intercept
+
+    for i = 0 to periods by 1
+        price = high[i] - interceptCopy
+
+        if price > upperDeviation
+            upperDeviation := price
+
+        price := interceptCopy - low[i]
+
+        if price > lowerDeviation
+            lowerDeviation := price
+
+        price := source[i]
+        dxt = price - average
+        dyt = interceptCopy - daY
+
+        price -= interceptCopy
+
+        standardDeviationAccum += math.pow(price, 2)
+
+        dsxx += math.pow(dxt, 2)
+        dsyy += math.pow(dyt, 2)
+        dsxy += dxt * dyt
+
+        interceptCopy += slope
+        
+    pearsonsR = dsxx == 0 or dsyy == 0 ? 0 : dsxy / math.sqrt(dsxx * dsyy)
+    standardDeviation = math.sqrt(standardDeviationAccum / (periods == 0 ? 1 : periods))
+    [standardDeviation, pearsonsR, upperDeviation, lowerDeviation]
 
 // ------------------------------------------------------------------
 // Visualization of Regression, Forecast & Top/Bottom Bounds
