@@ -50,6 +50,7 @@ upperChannelDeviation = input.float(
     2.0, '', active = showUpperChannel, step = 0.1
     , group = 'Channel Settings', inline = 'Upper Channel'
 )
+
 showLowerChannel = input.bool(
     true, 'Show Lower Deviation Channel'
     , group = 'Channel Settings', inline = 'Lower Channel'
@@ -74,9 +75,7 @@ nTopBottom = input.int(
 // specific settings. Check the group names for more details.
 // ------------------------------------------------------------------
 
-isLinearModel = switch regressionType
-    'linear' => true
-    => false
+isLinearModel = regressionType == 'linear' ? true : false
 
 showPearsonInput = input.bool(
     true, 'Show Pearsons R', active = isLinearModel
