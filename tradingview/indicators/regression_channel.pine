@@ -196,63 +196,65 @@ linearDeviation(source, length, slope, average, intercept) =>
 // Visualization of Regression, Forecast & Top/Bottom Bounds
 // ------------------------------------------------------------------
 
-[slope, average, intercept] = linearRegression(dataSource, lookbackPeriod)
+switch regressionType
+    'linear' =>
+        [slope, average, intercept] = linearRegression(dataSource, lookbackPeriod)
 
-// ? Calculate the start and end price of the mean regression line
-startPriceLinReg = intercept + slope * (lookbackPeriod - 1)
-endPriceLinReg = intercept
+        // ? Calculate the start and end price of the mean regression line
+        startPriceLinReg = intercept + slope * (lookbackPeriod - 1)
+        endPriceLinReg = intercept
 
-var line meanLineLinReg = na
-if na(meanLineLinReg) and not na(startPriceLinReg)
-    meanLineLinReg := line.new(
-        bar_index - lookbackPeriod + 1, startPriceLinReg, bar_index, endPriceLinReg
-        , width = 1, extend = linRegExtendType, color = color.new(color.black, 0)
-    )
-else
-    line.set_xy1(meanLineLinReg, bar_index - lookbackPeriod + 1, startPriceLinReg)
-    line.set_xy2(meanLineLinReg, bar_index, endPriceLinReg)
+        var line meanLineLinReg = na
+        if na(meanLineLinReg) and not na(startPriceLinReg)
+            meanLineLinReg := line.new(
+                bar_index - lookbackPeriod + 1, startPriceLinReg, bar_index, endPriceLinReg
+                , width = 1, extend = linRegExtendType, color = color.new(color.black, 0)
+            )
+        else
+            line.set_xy1(meanLineLinReg, bar_index - lookbackPeriod + 1, startPriceLinReg)
+            line.set_xy2(meanLineLinReg, bar_index, endPriceLinReg)
 
-[standardDeviation, pearsonsR, upperDeviation, lowerDeviation] = linearDeviation(
-    dataSource, lookbackPeriod, slope, average, intercept
-)
+        [standardDeviation, pearsonsR, upperDeviation, lowerDeviation] = linearDeviation(
+            dataSource, lookbackPeriod, slope, average, intercept
+        )
 
-// ? Draw N-Upper/Lower Channels based on User Input
-upperStartPriceLinReg = startPriceLinReg + (showUpperChannel ? upperChannelDeviation * standardDeviation : upperChannelDeviation)
-upperEndPriceLinReg = endPriceLinReg + (showUpperChannel ? lowerChannelDeviation * standardDeviation : lowerChannelDeviation)
+        // TODO Draw N-Upper/Lower Channels based on User Input
+        upperStartPriceLinReg = startPriceLinReg + (showUpperChannel ? upperChannelDeviation * standardDeviation : upperChannelDeviation)
+        upperEndPriceLinReg = endPriceLinReg + (showUpperChannel ? lowerChannelDeviation * standardDeviation : lowerChannelDeviation)
 
-lowerStartPriceLinReg = startPriceLinReg + (showLowerChannel ? -upperChannelDeviation * standardDeviation : -upperChannelDeviation)
-lowerEndPriceLinReg = endPriceLinReg + (showLowerChannel ? -lowerChannelDeviation * standardDeviation : -lowerChannelDeviation)
+        lowerStartPriceLinReg = startPriceLinReg + (showLowerChannel ? -upperChannelDeviation * standardDeviation : -upperChannelDeviation)
+        lowerEndPriceLinReg = endPriceLinReg + (showLowerChannel ? -lowerChannelDeviation * standardDeviation : -lowerChannelDeviation)
 
+        var line nthUpperLineLinReg = na
+        var line nthLowerLineLinReg = na
 
-var line nthUpperLineLinReg = na
-var line nthLowerLineLinReg = na
+        if na(nthUpperLineLinReg) and not na(upperStartPriceLinReg)
+            nthUpperLineLinReg := line.new(
+                bar_index - lookbackPeriod + 1, upperStartPriceLinReg, bar_index, upperEndPriceLinReg
+                , width = 1, extend = linRegExtendType, color = color.new(colorUpperChannel, 0)
+            )
+        else
+            line.set_xy1(nthUpperLineLinReg, bar_index - lookbackPeriod + 1, upperStartPriceLinReg)
+            line.set_xy2(nthUpperLineLinReg, bar_index, upperEndPriceLinReg)
 
-if na(nthUpperLineLinReg) and not na(upperStartPriceLinReg)
-    nthUpperLineLinReg := line.new(
-        bar_index - lookbackPeriod + 1, upperStartPriceLinReg, bar_index, upperEndPriceLinReg
-        , width = 1, extend = linRegExtendType, color = color.new(colorUpperChannel, 0)
-    )
-else
-    line.set_xy1(nthUpperLineLinReg, bar_index - lookbackPeriod + 1, upperStartPriceLinReg)
-    line.set_xy2(nthUpperLineLinReg, bar_index, upperEndPriceLinReg)
+        if na(nthLowerLineLinReg) and not na(lowerStartPriceLinReg)
+            nthLowerLineLinReg := line.new(
+                bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, bar_index, lowerEndPriceLinReg
+                , width = 1, extend = linRegExtendType, color = color.new(colorLowerChannel, 0)
+            )
+        else
+            line.set_xy1(nthLowerLineLinReg, bar_index - lookbackPeriod + 1, lowerStartPriceLinReg)
+            line.set_xy2(nthLowerLineLinReg, bar_index, lowerEndPriceLinReg)
 
-if na(nthLowerLineLinReg) and not na(lowerStartPriceLinReg)
-    nthLowerLineLinReg := line.new(
-        bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, bar_index, lowerEndPriceLinReg
-        , width = 1, extend = linRegExtendType, color = color.new(colorLowerChannel, 0)
-    )
-else
-    line.set_xy1(nthLowerLineLinReg, bar_index - lookbackPeriod + 1, lowerStartPriceLinReg)
-    line.set_xy2(nthLowerLineLinReg, bar_index, lowerEndPriceLinReg)
+        // Show Pearson's R
+        var label r = na
+        label.delete(r[1])
 
-// Show Pearson's R
-var label r = na
-label.delete(r[1])
-
-if showPearsonInput and not na(pearsonsR)
-    r := label.new(
-        bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, str.tostring(pearsonsR, 'R = #.#####')
-        , color = color.new(color.white, 100)
-        , textcolor = color.new(color.black, 0)
-        , size = size.normal, style = label.style_label_up
-    )
+        if showPearsonInput and not na(pearsonsR)
+            r := label.new(
+                bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, str.tostring(pearsonsR, 'R = #.#####')
+                , color = color.new(color.white, 100)
+                , textcolor = color.new(color.black, 0)
+                , size = size.normal, style = label.style_label_up
+            )
+    => display.none
