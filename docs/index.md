@@ -22,4 +22,9 @@
   :show-inheritance:
 ```
 
+```{toctree}
+:hidden:
+./tradingview/index.md
+```
+
 </div>
