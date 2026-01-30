@@ -192,6 +192,11 @@ linearDeviation(source, length, slope, average, intercept) =>
 // Visualization of Regression, Forecast & Top/Bottom Bounds
 // ------------------------------------------------------------------
 
+labelPrefix = switch regressionType
+    'linear' => 'L'
+    'exponential' => 'E'
+    => na
+
 switch regressionType
     'linear' =>
         [slope, average, intercept] = linearRegression(dataSource, lookbackPeriod)
@@ -218,13 +223,14 @@ switch regressionType
         var array<line> lowerChannels = array.new<line>(nTopBottom)
 
         for i = 0 to nTopBottom - 1 by 1
-            multiplier = (i + 1) * (showUpperChannel ? upperChannelDeviation : 1.0) / nTopBottom
+            upperMultiplier = (i + 1) * (showUpperChannel ? upperChannelDeviation : 1.0) / nTopBottom
+            lowerMultiplier = (i + 1) * (showLowerChannel ? lowerChannelDeviation : 1.0) / nTopBottom
 
-            upperStartPrice = startPriceLinReg + multiplier * standardDeviation
-            upperEndPrice = endPriceLinReg + multiplier * standardDeviation
+            upperStartPrice = startPriceLinReg + upperMultiplier * standardDeviation
+            upperEndPrice = endPriceLinReg + upperMultiplier * standardDeviation
 
-            lowerStartPrice = startPriceLinReg - multiplier * standardDeviation
-            lowerEndPrice = endPriceLinReg - multiplier * standardDeviation
+            lowerStartPrice = startPriceLinReg - lowerMultiplier * standardDeviation
+            lowerEndPrice = endPriceLinReg - lowerMultiplier * standardDeviation
 
             if na(array.get(upperChannels, i)) and not na(upperStartPrice)
                 array.set(upperChannels, i, line.new(
@@ -248,12 +254,10 @@ switch regressionType
         var label r = na
         label.delete(r[1])
 
-        lowerStartPriceLinReg = startPriceLinReg + (
-            showLowerChannel ? -upperChannelDeviation * standardDeviation : -upperChannelDeviation
-        )
         if showPearsonInput and not na(pearsonsR)
             r := label.new(
-                bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, str.tostring(pearsonsR, 'R = #.#####')
+                bar_index - lookbackPeriod + 1, startPriceLinReg
+                , str.tostring(pearsonsR, 'R = #.#####')
                 , color = color.new(color.white, 100)
                 , textcolor = color.new(color.black, 0)
                 , size = size.normal, style = label.style_label_up
