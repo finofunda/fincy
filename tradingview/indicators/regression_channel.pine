@@ -85,7 +85,7 @@ showPearsonInput = input.bool(
     , group = 'Display Settings (Linear Model)'
 )
 
-// General Display - Color Settings
+// General Display - Line Extensions
 
 extendLeftInput = input.bool(
     false, 'Extend Left Lines'
@@ -99,6 +99,8 @@ extendRightInput = input.bool(
     , tooltip = 'Extend to check potential market movement.'
 )
 
+// General Display - Color Settings
+
 colorUpperChannel = input.color(
     color.new(color.green, 85), ''
     , group = 'Display Settings', inline = 'Display Settings'
@@ -108,12 +110,6 @@ colorLowerChannel = input.color(
     color.new(color.red, 85), ''
     , group = 'Display Settings', inline = 'Display Settings'
 )
-
-extendLineType = switch
-    extendLeftInput and extendRightInput => extend.both
-    extendLeftInput => extend.left
-    extendRightInput => extend.right
-    => extend.none
 
 // ------------------------------------------------------------------
 // Function(s)/Calculation(s) for Linear Regression & Deviation
@@ -260,6 +256,12 @@ labelPrefix = switch regressionType
     'linear' => 'L'
     'exponential' => 'E'
     => na
+
+extendLineType = switch
+    extendLeftInput and extendRightInput => extend.both
+    extendLeftInput => extend.left
+    extendRightInput => extend.right
+    => extend.none
 
 switch regressionType
     'linear' =>
