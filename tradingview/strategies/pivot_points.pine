@@ -83,6 +83,10 @@ showLabels = input.bool(
 
 // ------------------------------------------------------------------
 // INPUT(s) for ATR Calculation | Group Name : ATR Settings
+//
+// The multi-level ATR to determine targets and stop loss is taken
+// from @ZenithClown, for more details check the script here at
+// https://in.tradingview.com/script/fu7CCmaC-ATR-SL-Profit-Trailing/
 // ------------------------------------------------------------------
 
 atrType = input.string(
@@ -222,6 +226,12 @@ useNextLevel = input.bool(
     true, 'Exit at Next Pivot Level'
     , group = 'Exit Rules'
     , tooltip = 'Take Profit when Reaching Next Pivot Level.'
+)
+
+partialBookATR = input.bool(
+    true, 'Book Partial Profit at ATR Level'
+    , group = 'Exit Rules'
+    , tooltip = 'Take Partial Profit based on Entry ATR Value'
 )
 
 // ------------------------------------------------------------------
