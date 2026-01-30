@@ -147,7 +147,6 @@ linearRegression(source, length) =>
 
         [slope, average, intercept]
 
-
 linearDeviation(source, length, slope, average, intercept) =>
     upperDeviation = 0.0
     lowerDeviation = 0.0
@@ -179,9 +178,6 @@ linearDeviation(source, length, slope, average, intercept) =>
         dyt = interceptCopy - daY
 
         price -= interceptCopy
-
-        standardDeviationAccum += math.pow(price, 2)
-
         dsxx += math.pow(dxt, 2)
         dsyy += math.pow(dyt, 2)
         dsxy += dxt * dyt
@@ -189,7 +185,7 @@ linearDeviation(source, length, slope, average, intercept) =>
         interceptCopy += slope
         
     pearsonsR = dsxx == 0 or dsyy == 0 ? 0 : dsxy / math.sqrt(dsxx * dsyy)
-    standardDeviation = math.sqrt(standardDeviationAccum / (periods == 0 ? 1 : periods))
+    standardDeviation = ta.stdev(source, length)
     [standardDeviation, pearsonsR, upperDeviation, lowerDeviation]
 
 // ------------------------------------------------------------------
@@ -218,38 +214,43 @@ switch regressionType
             dataSource, lookbackPeriod, slope, average, intercept
         )
 
-        // TODO Draw N-Upper/Lower Channels based on User Input
-        upperStartPriceLinReg = startPriceLinReg + (showUpperChannel ? upperChannelDeviation * standardDeviation : upperChannelDeviation)
-        upperEndPriceLinReg = endPriceLinReg + (showUpperChannel ? lowerChannelDeviation * standardDeviation : lowerChannelDeviation)
+        var array<line> upperChannels = array.new<line>(nTopBottom)
+        var array<line> lowerChannels = array.new<line>(nTopBottom)
 
-        lowerStartPriceLinReg = startPriceLinReg + (showLowerChannel ? -upperChannelDeviation * standardDeviation : -upperChannelDeviation)
-        lowerEndPriceLinReg = endPriceLinReg + (showLowerChannel ? -lowerChannelDeviation * standardDeviation : -lowerChannelDeviation)
+        for i = 0 to nTopBottom - 1 by 1
+            multiplier = (i + 1) * (showUpperChannel ? upperChannelDeviation : 1.0) / nTopBottom
 
-        var line nthUpperLineLinReg = na
-        var line nthLowerLineLinReg = na
+            upperStartPrice = startPriceLinReg + multiplier * standardDeviation
+            upperEndPrice = endPriceLinReg + multiplier * standardDeviation
 
-        if na(nthUpperLineLinReg) and not na(upperStartPriceLinReg)
-            nthUpperLineLinReg := line.new(
-                bar_index - lookbackPeriod + 1, upperStartPriceLinReg, bar_index, upperEndPriceLinReg
-                , width = 1, extend = linRegExtendType, color = color.new(colorUpperChannel, 0)
-            )
-        else
-            line.set_xy1(nthUpperLineLinReg, bar_index - lookbackPeriod + 1, upperStartPriceLinReg)
-            line.set_xy2(nthUpperLineLinReg, bar_index, upperEndPriceLinReg)
+            lowerStartPrice = startPriceLinReg - multiplier * standardDeviation
+            lowerEndPrice = endPriceLinReg - multiplier * standardDeviation
 
-        if na(nthLowerLineLinReg) and not na(lowerStartPriceLinReg)
-            nthLowerLineLinReg := line.new(
-                bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, bar_index, lowerEndPriceLinReg
-                , width = 1, extend = linRegExtendType, color = color.new(colorLowerChannel, 0)
-            )
-        else
-            line.set_xy1(nthLowerLineLinReg, bar_index - lookbackPeriod + 1, lowerStartPriceLinReg)
-            line.set_xy2(nthLowerLineLinReg, bar_index, lowerEndPriceLinReg)
+            if na(array.get(upperChannels, i)) and not na(upperStartPrice)
+                array.set(upperChannels, i, line.new(
+                    bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
+                    , width = 1, extend = linRegExtendType, color = color.new(colorUpperChannel, 0)
+                ))
+            else if not na(array.get(upperChannels, i))
+                line.set_xy1(array.get(upperChannels, i), bar_index - lookbackPeriod + 1, upperStartPrice)
+                line.set_xy2(array.get(upperChannels, i), bar_index, upperEndPrice)
+
+            if na(array.get(lowerChannels, i)) and not na(lowerStartPrice)
+                array.set(lowerChannels, i, line.new(
+                    bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
+                    , width = 1, extend = linRegExtendType, color = color.new(colorLowerChannel, 0)
+                ))
+            else if not na(array.get(lowerChannels, i))
+                line.set_xy1(array.get(lowerChannels, i), bar_index - lookbackPeriod + 1, lowerStartPrice)
+                line.set_xy2(array.get(lowerChannels, i), bar_index, lowerEndPrice)
 
         // Show Pearson's R
         var label r = na
         label.delete(r[1])
 
+        lowerStartPriceLinReg = startPriceLinReg + (
+            showLowerChannel ? -upperChannelDeviation * standardDeviation : -upperChannelDeviation
+        )
         if showPearsonInput and not na(pearsonsR)
             r := label.new(
                 bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, str.tostring(pearsonsR, 'R = #.#####')
