@@ -25,7 +25,7 @@ indicator('Regression Channel', overlay = true)
 regressionType = input.string(
     'linear', 'Regression Type'
     , options = [
-        'linear', 'exponential', 'polynomial'
+        'linear', 'exponential'
     ]
 )
 
