@@ -78,7 +78,7 @@ nTopBottom = input.int(
 isLinearModel = regressionType == 'linear' ? true : false
 
 showPearsonInput = input.bool(
-    true, 'Show Pearsons R', active = isLinearModel
+    false, 'Show Pearsons R', active = isLinearModel
     , group = 'Display Settings (Linear Model)'
 )
 
@@ -244,3 +244,15 @@ if na(nthLowerLineLinReg) and not na(lowerStartPriceLinReg)
 else
     line.set_xy1(nthLowerLineLinReg, bar_index - lookbackPeriod + 1, lowerStartPriceLinReg)
     line.set_xy2(nthLowerLineLinReg, bar_index, lowerEndPriceLinReg)
+
+// Show Pearson's R
+var label r = na
+label.delete(r[1])
+
+if showPearsonInput and not na(pearsonsR)
+    r := label.new(
+        bar_index - lookbackPeriod + 1, lowerStartPriceLinReg, str.tostring(pearsonsR, 'R = #.#####')
+        , color = color.new(color.white, 100)
+        , textcolor = color.new(color.black, 0)
+        , size = size.normal, style = label.style_label_up
+    )
