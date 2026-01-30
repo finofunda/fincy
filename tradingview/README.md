@@ -54,7 +54,7 @@ indicators are displayed on the chart as lines, columns, points, geometric figur
 | Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
 | :---: | :---: | :---: | --- |
 | **ATR SL/Profit Trailing** (ATR Bands) | 🔒🔑 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://www.tradingview.com/script/fu7CCmaC-ATR-SL-Profit-Trailing/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/atr_bands.pine) | A simple script to *overlay* ATR bands using a custom multiplier over the chart for quick calculation. |
-| **Regression Channels** | 👥🔑 | [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/regression_channel.pine) | |
+| **Regression Channels** | 👥🌐 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://in.tradingview.com/script/Kr4HNxg2-Regression-Channel/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/regression_channel.pine) | |
 
 </div>
 
