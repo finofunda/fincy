@@ -221,6 +221,8 @@ switch regressionType
 
         var array<line> upperChannels = array.new<line>(nTopBottom)
         var array<line> lowerChannels = array.new<line>(nTopBottom)
+        var array<linefill> upperFills = array.new<linefill>(nTopBottom)
+        var array<linefill> lowerFills = array.new<linefill>(nTopBottom)
 
         for i = 0 to nTopBottom - 1 by 1
             upperMultiplier = (i + 1) * (showUpperChannel ? upperChannelDeviation : 1.0) / nTopBottom
@@ -237,18 +239,34 @@ switch regressionType
                     bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
                     , width = 1, extend = linRegExtendType, color = color.new(colorUpperChannel, 0)
                 ))
-            else if not na(array.get(upperChannels, i))
-                line.set_xy1(array.get(upperChannels, i), bar_index - lookbackPeriod + 1, upperStartPrice)
-                line.set_xy2(array.get(upperChannels, i), bar_index, upperEndPrice)
+            
+            gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
+            baseLine = i == 0 ? meanLineLinReg : array.get(upperChannels, i - 1)
+            if not na(array.get(upperChannels, i)) and not na(baseLine)
+                if na(array.get(upperFills, i))
+                    array.set(upperFills, i, linefill.new(
+                        baseLine, array.get(upperChannels, i)
+                        , color.new(colorUpperChannel, gradientTransparency)
+                    ))
+                else
+                    linefill.set_color(array.get(upperFills, i), color.new(colorUpperChannel, gradientTransparency))
 
             if na(array.get(lowerChannels, i)) and not na(lowerStartPrice)
                 array.set(lowerChannels, i, line.new(
                     bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
                     , width = 1, extend = linRegExtendType, color = color.new(colorLowerChannel, 0)
                 ))
-            else if not na(array.get(lowerChannels, i))
-                line.set_xy1(array.get(lowerChannels, i), bar_index - lookbackPeriod + 1, lowerStartPrice)
-                line.set_xy2(array.get(lowerChannels, i), bar_index, lowerEndPrice)
+            
+            gradientTransparency := int(85 + (100 - 85) * (i + 1) / nTopBottom)
+            baseLine := i == 0 ? meanLineLinReg : array.get(lowerChannels, i - 1)
+            if not na(array.get(lowerChannels, i)) and not na(baseLine)
+                if na(array.get(lowerFills, i))
+                    array.set(lowerFills, i, linefill.new(
+                        baseLine, array.get(lowerChannels, i)
+                        , color.new(colorLowerChannel, gradientTransparency)
+                    ))
+                else
+                    linefill.set_color(array.get(lowerFills, i), color.new(colorLowerChannel, gradientTransparency))
 
         // Show Pearson's R
         var label r = na
