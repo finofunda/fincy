@@ -88,18 +88,19 @@ showPearsonInput = input.bool(
 // General Display - Line Extensions
 
 extendLeftInput = input.bool(
-    false, 'Extend Left Lines'
+    false, 'Extend Lines towards Left'
     , group = 'Display Settings'
-    , tooltip = 'Extend to check when there was a reversal.'
 )
 
 extendRightInput = input.bool(
-    true, 'Extend Right Lines'
+    true, 'Extend Lines towards Right'
     , group = 'Display Settings'
-    , tooltip = 'Extend to check potential market movement.'
 )
 
-// General Display - Color Settings
+useColorGradient = input.bool(
+    true, 'Show Color Gradient'
+    , group = 'Display Settings'
+)
 
 colorUpperChannel = input.color(
     color.new(color.green, 85), ''
@@ -189,6 +190,11 @@ linearDeviation(source, length, slope, average, intercept) =>
 
 // ------------------------------------------------------------------
 // Function(s)/Calculation(s) for Exponential Regression & Deviation
+//
+// exponentialRegression - Function to calculate exponential
+// regression values, which can be used to form a baseline. An
+// exponential regression line maybe useful in certain instruments
+// like the crypto currencies/forex where volatility is much higher.
 // ------------------------------------------------------------------
 
 exponentialRegression(source, length) =>
@@ -202,9 +208,9 @@ exponentialRegression(source, length) =>
 
         for i = 0 to length - 1 by 1
             value = source[i]
-            perct = i + 1.0
             
             if value > 0
+                perct = i + 1.0
                 logValue = math.log(value)
                 
                 sumX += perct
@@ -252,16 +258,49 @@ exponentialDeviation(source, length, slope, average, intercept) =>
 // Visualization of Regression, Forecast & Top/Bottom Bounds
 // ------------------------------------------------------------------
 
-labelPrefix = switch regressionType
-    'linear' => 'L'
-    'exponential' => 'E'
-    => na
-
 extendLineType = switch
     extendLeftInput and extendRightInput => extend.both
     extendLeftInput => extend.left
     extendRightInput => extend.right
     => extend.none
+
+// ? Helper function(s) to draw objects into screen
+
+createUpdateLine(existingLine, x1, y1, x2, y2, lineColor) =>
+    if na(existingLine) and not na(y1)
+        line.new(
+            x1, y1, x2, y2
+            , width = 1
+            , extend = extendLineType
+            , color = lineColor
+        )
+    else
+        line.set_xy1(existingLine, x1, y1)
+        line.set_xy2(existingLine, x2, y2)
+        existingLine
+
+createChannelLine(channelArray, index, x1, y1, x2, y2, lineColor) =>
+    if na(array.get(channelArray, index)) and not na(y1)
+        array.set(
+            channelArray, index
+            , line.new(
+                x1, y1, x2, y2
+                , width = 1
+                , extend = extendLineType
+                , color = color.new(lineColor, 0)
+            )
+        )
+
+createUpdateFill(
+    fillArray, index, baseLine, channelLine, fillColor, transparency
+) =>
+    if not na(channelLine) and not na(baseLine)
+        if na(array.get(fillArray, index))
+            array.set(fillArray, index, linefill.new(baseLine, channelLine, color.new(fillColor, transparency)))
+        else
+            linefill.set_color(array.get(fillArray, index), color.new(fillColor, transparency))
+
+// ? Draw On Graph - Based on Regression Type
 
 switch regressionType
     'linear' =>
@@ -271,14 +310,11 @@ switch regressionType
         endPriceLinReg = intercept
 
         var line meanLineLinReg = na
-        if na(meanLineLinReg) and not na(startPriceLinReg)
-            meanLineLinReg := line.new(
-                bar_index - lookbackPeriod + 1, startPriceLinReg, bar_index, endPriceLinReg
-                , width = 1, extend = extendLineType, color = color.new(color.black, 0)
-            )
-        else
-            line.set_xy1(meanLineLinReg, bar_index - lookbackPeriod + 1, startPriceLinReg)
-            line.set_xy2(meanLineLinReg, bar_index, endPriceLinReg)
+        meanLineLinReg := createUpdateLine(
+            meanLineLinReg
+            , bar_index - lookbackPeriod + 1, startPriceLinReg, bar_index, endPriceLinReg
+            , color.new(color.black, 0)
+        )
 
         [standardDeviation, pearsonsR, upperDeviation, lowerDeviation] = linearDeviation(
             dataSource, lookbackPeriod, slope, average, intercept
@@ -299,39 +335,35 @@ switch regressionType
             lowerStartPrice = startPriceLinReg - lowerMultiplier * standardDeviation
             lowerEndPrice = endPriceLinReg - lowerMultiplier * standardDeviation
 
-            if na(array.get(upperChannels, i)) and not na(upperStartPrice)
-                array.set(upperChannels, i, line.new(
-                    bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
-                    , width = 1, extend = extendLineType, color = color.new(colorUpperChannel, 0)
-                ))
+            createChannelLine(
+                upperChannels, i
+                , bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
+                , colorUpperChannel
+            )
             
-            gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
-            baseLine = i == 0 ? meanLineLinReg : array.get(upperChannels, i - 1)
-            if not na(array.get(upperChannels, i)) and not na(baseLine)
-                if na(array.get(upperFills, i))
-                    array.set(upperFills, i, linefill.new(
-                        baseLine, array.get(upperChannels, i)
-                        , color.new(colorUpperChannel, gradientTransparency)
-                    ))
-                else
-                    linefill.set_color(array.get(upperFills, i), color.new(colorUpperChannel, gradientTransparency))
+            if useColorGradient
+                gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
+                baseLine = i == 0 ? meanLineLinReg : array.get(upperChannels, i - 1)
+                createUpdateFill(
+                    upperFills, i
+                    , baseLine, array.get(upperChannels, i)
+                    , colorUpperChannel, gradientTransparency
+                )
 
-            if na(array.get(lowerChannels, i)) and not na(lowerStartPrice)
-                array.set(lowerChannels, i, line.new(
-                    bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
-                    , width = 1, extend = extendLineType, color = color.new(colorLowerChannel, 0)
-                ))
+            createChannelLine(
+                lowerChannels, i
+                , bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
+                , colorLowerChannel
+            )
             
-            gradientTransparency := int(85 + (100 - 85) * (i + 1) / nTopBottom)
-            baseLine := i == 0 ? meanLineLinReg : array.get(lowerChannels, i - 1)
-            if not na(array.get(lowerChannels, i)) and not na(baseLine)
-                if na(array.get(lowerFills, i))
-                    array.set(lowerFills, i, linefill.new(
-                        baseLine, array.get(lowerChannels, i)
-                        , color.new(colorLowerChannel, gradientTransparency)
-                    ))
-                else
-                    linefill.set_color(array.get(lowerFills, i), color.new(colorLowerChannel, gradientTransparency))
+            if useColorGradient
+                gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
+                baseLine = i == 0 ? meanLineLinReg : array.get(lowerChannels, i - 1)
+                createUpdateFill(
+                    lowerFills, i
+                    , baseLine, array.get(lowerChannels, i)
+                    , colorLowerChannel, gradientTransparency
+                )
 
         var label r = na
         label.delete(r[1])
@@ -352,14 +384,11 @@ switch regressionType
         endPriceExpReg = math.exp(intercept)
 
         var line meanLineExpReg = na
-        if na(meanLineExpReg) and not na(startPriceExpReg)
-            meanLineExpReg := line.new(
-                bar_index - lookbackPeriod + 1, startPriceExpReg, bar_index, endPriceExpReg
-                , width = 1, extend = extendLineType, color = color.new(color.black, 0)
-            )
-        else
-            line.set_xy1(meanLineExpReg, bar_index - lookbackPeriod + 1, startPriceExpReg)
-            line.set_xy2(meanLineExpReg, bar_index, endPriceExpReg)
+        meanLineExpReg := createUpdateLine(
+            meanLineExpReg
+            , bar_index - lookbackPeriod + 1, startPriceExpReg, bar_index, endPriceExpReg
+            , color.new(color.black, 0)
+        )
 
         [standardDeviation, upperDeviation, lowerDeviation] = exponentialDeviation(
             dataSource, lookbackPeriod, slope, average, intercept
@@ -380,38 +409,34 @@ switch regressionType
             lowerStartPrice = math.exp(intercept + slope * (lookbackPeriod - 1) - lowerMultiplier * standardDeviation)
             lowerEndPrice = math.exp(intercept - lowerMultiplier * standardDeviation)
 
-            if na(array.get(upperChannelsExp, i)) and not na(upperStartPrice)
-                array.set(upperChannelsExp, i, line.new(
-                    bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
-                    , width = 1, extend = extendLineType, color = color.new(colorUpperChannel, 0)
-                ))
-            
-            gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
-            baseLine = i == 0 ? meanLineExpReg : array.get(upperChannelsExp, i - 1)
-            if not na(array.get(upperChannelsExp, i)) and not na(baseLine)
-                if na(array.get(upperFillsExp, i))
-                    array.set(upperFillsExp, i, linefill.new(
-                        baseLine, array.get(upperChannelsExp, i)
-                        , color.new(colorUpperChannel, gradientTransparency)
-                    ))
-                else
-                    linefill.set_color(array.get(upperFillsExp, i), color.new(colorUpperChannel, gradientTransparency))
+            createChannelLine(
+                upperChannelsExp, i
+                , bar_index - lookbackPeriod + 1, upperStartPrice, bar_index, upperEndPrice
+                , colorUpperChannel
+            )
 
-            if na(array.get(lowerChannelsExp, i)) and not na(lowerStartPrice)
-                array.set(lowerChannelsExp, i, line.new(
-                    bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
-                    , width = 1, extend = extendLineType, color = color.new(colorLowerChannel, 0)
-                ))
-            
-            gradientTransparency := int(85 + (100 - 85) * (i + 1) / nTopBottom)
-            baseLine := i == 0 ? meanLineExpReg : array.get(lowerChannelsExp, i - 1)
-            if not na(array.get(lowerChannelsExp, i)) and not na(baseLine)
-                if na(array.get(lowerFillsExp, i))
-                    array.set(lowerFillsExp, i, linefill.new(
-                        baseLine, array.get(lowerChannelsExp, i)
-                        , color.new(colorLowerChannel, gradientTransparency)
-                    ))
-                else
-                    linefill.set_color(array.get(lowerFillsExp, i), color.new(colorLowerChannel, gradientTransparency))
+            if useColorGradient
+                gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
+                baseLine = i == 0 ? meanLineExpReg : array.get(upperChannelsExp, i - 1)
+                createUpdateFill(
+                    upperFillsExp, i
+                    , baseLine, array.get(upperChannelsExp, i)
+                    , colorUpperChannel, gradientTransparency
+                )
+
+            createChannelLine(
+                lowerChannelsExp, i
+                , bar_index - lookbackPeriod + 1, lowerStartPrice, bar_index, lowerEndPrice
+                , colorLowerChannel
+            )
+
+            if useColorGradient
+                gradientTransparency = int(85 + (100 - 85) * (i + 1) / nTopBottom)
+                baseLine = i == 0 ? meanLineExpReg : array.get(lowerChannelsExp, i - 1)
+                createUpdateFill(
+                    lowerFillsExp, i
+                    , baseLine, array.get(lowerChannelsExp, i)
+                    , colorLowerChannel, gradientTransparency
+                )
 
     => display.none
