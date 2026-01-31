@@ -67,6 +67,7 @@ data and (ii) can send/execute buy/sell orders for an instrument.
 
 | Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
 | :---: | :---: | :---: | --- |
+| **Pivot Points Strategy** (PPS) | 👥🔑 | [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./strategies/pivot_points.pine) |
 
 </div>
 
