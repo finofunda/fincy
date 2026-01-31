@@ -13,15 +13,18 @@
 
 <div align = "justify">
 
-A lightweight and extensible Python toolkit for calculating financial metrics. Designed to work **standalone** or integrate
-seamlessly with **external systems** through connectors, this project emphasizes clarity, validation, and modular architecture.
+Project **`fincy` 'FINancial efficienCY'** is a two-part project - (i) a Python library that can be seamlessly integrated to 
+perform back-testing and other "AI" related stuffs, and (ii) a source control for TradingView's scripts that are hosted from
+my [account](https://in.tradingview.com/u/ZenithClown/).
+
+The Python package provides a lightweight and extensible Python toolkit for calculating financial metrics. Designed to work
+**standalone** or integrate seamlessly with **external systems** through connectors, this project emphasizes clarity,
+validation, and modular architecture. The package is available at [PyPI/fincy](https://pypi.org/project/fincy/).
 
 ## Getting Started
 
-Project **`fincy`** is a two-part project - (i) a Python library that can be seamlessly integrated to perform back-testing and
-other "AI" related stuffs, and (ii) a source control for TradingView's scripts that are hosted from my
-[account](https://in.tradingview.com/u/ZenithClown/). Python project is hosted at
-[GitHub/fincy](https://github.com/finofunda/fincy) and can be installed using Python Package Index (PyPI) as:
+Python project is hosted at [GitHub/fincy](https://github.com/finofunda/fincy) and can be installed using Python Package
+Index (PyPI), using the `pip` package manager as:
 
 ```shell
 pip install fincy
@@ -44,15 +47,31 @@ pip install -r requirements.txt  # install the package dependencies
 pip install .                    # install the package in the host machine
 ```
 
+### Developer Installation
+
+The documentation is compiled using Sphinx (MyST Parser) and hosted at ReadTheDocs. A developer requires additional packages
+for documentation and can be installed (recommended to use a different environment) as:
+
+```shell
+cd docs # all documentations, configuration files, etc.
+pip install -r requirements-docs.txt
+```
+
 ### TradingView Scripts
 
 TradingView's community hosting page provides a great interface for code documentation, release notes and other
-essential things. Check individual script notes as mention under [`./tradingview/README.md`](./tradingview/README.md)
-file with additional details.
+essential things. For advanced concepts, statistical notes, Python implementations and other details please check the
+[tradingview docs](https://fincy.readthedocs.io/en/latest/tradingview/index.html) under the project.
 
 ## LICENSE
 
 The project is available under MIT License, while all the conents under the **`./tradingview/`** follows MPL 2.0 License by
 default as per TradingView & PineScript policies.
+
+## DISCLAIMER
+
+The information and publications are not intended to be, and do not constitute, financial, investment, trading, or any other
+form of advice or recommendations supplied or endorsed by the publisher or the creators of this script. Users are advised to
+exercise their own judgment and seek professional advice before making any financial decisions.
 
 </div>
