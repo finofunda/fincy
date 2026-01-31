@@ -85,6 +85,26 @@ showPearsonInput = input.bool(
     , group = 'Display Settings (Linear Model)'
 )
 
+// Settings for Performance Table
+
+showPerformanceTable = input.bool(
+    true, 'Performance Table'
+    , group = 'Display Settings'
+    , inline = 'Performance Table'
+    , tooltip = 'Display performance metrics and model fit quality.'
+)
+
+tablePosition = input.string(
+    'Bottom Right', '', active = showPerformanceTable
+    , options = [
+        'Top Left', 'Top Center', 'Top Right',
+        'Middle Left', 'Middle Center', 'Middle Right',
+        'Bottom Left', 'Bottom Center', 'Bottom Right'
+    ]
+    , group = 'Display Settings'
+    , inline = 'Performance Table'
+)
+
 // General Display - Line Extensions
 
 extendLeftInput = input.bool(
@@ -161,6 +181,11 @@ linearDeviation(source, length, slope, average, intercept) =>
     daY = intercept + slope * periods / 2
 
     interceptCopy = intercept
+    
+    sumSquaredError = 0.0
+    sumPercentageError = 0.0
+    sumActual = 0.0
+    sumPredicted = 0.0
 
     for i = 0 to periods by 1
         price = high[i] - interceptCopy
@@ -174,19 +199,49 @@ linearDeviation(source, length, slope, average, intercept) =>
             lowerDeviation := price
 
         price := source[i]
-        dxt = price - average
-        dyt = interceptCopy - daY
-
+        
+        predicted = interceptCopy
+        actual = source[i]
+        error = actual - predicted
+        
+        sumSquaredError += math.pow(error, 2)
+        if actual != 0
+            sumPercentageError += math.abs(error / actual)
+        sumActual += actual
+        sumPredicted += predicted
+        
         price -= interceptCopy
+        
+        interceptCopy += slope
+    
+    avgActual = sumActual / length
+    avgPredicted = sumPredicted / length
+    
+    interceptCopy := intercept
+    
+    for i = 0 to periods by 1
+        actual = source[i]
+        predicted = interceptCopy
+        
+        dxt = actual - avgActual
+        dyt = predicted - avgPredicted
+        
         dsxx += math.pow(dxt, 2)
         dsyy += math.pow(dyt, 2)
         dsxy += dxt * dyt
-
+        
         interceptCopy += slope
         
     pearsonsR = dsxx == 0 or dsyy == 0 ? 0 : dsxy / math.sqrt(dsxx * dsyy)
     standardDeviation = ta.stdev(source, length)
-    [standardDeviation, pearsonsR, upperDeviation, lowerDeviation]
+    
+    rmse = math.sqrt(sumSquaredError / length)
+    rmpe = (sumPercentageError / length) * 100
+    rSquared = math.pow(pearsonsR, 2)
+    mae = sumSquaredError / length
+    mape = rmpe
+    
+    [standardDeviation, pearsonsR, upperDeviation, lowerDeviation, rmse, rmpe, rSquared, mae, mape]
 
 // ------------------------------------------------------------------
 // Function(s)/Calculation(s) for Exponential Regression & Deviation
@@ -233,6 +288,13 @@ exponentialDeviation(source, length, slope, average, intercept) =>
     
     periods = length - 1
     
+    sumSquaredError = 0.0
+    sumPercentageError = 0.0
+    sumActual = 0.0
+    dsxx = 0.0
+    dsyy = 0.0
+    dsxy = 0.0
+    
     for i = 0 to periods by 1
         expValue = math.exp(intercept + slope * (periods - i))
         
@@ -249,10 +311,32 @@ exponentialDeviation(source, length, slope, average, intercept) =>
         if source[i] > 0
             residual = math.log(source[i]) - (intercept + slope * (periods - i))
             standardDeviationAccum += math.pow(residual, 2)
+            
+            actual = source[i]
+            predicted = expValue
+            error = actual - predicted
+            
+            sumSquaredError += math.pow(error, 2)
+            if actual != 0
+                sumPercentageError += math.abs(error / actual)
+            sumActual += actual
+            
+            dxt = actual - (sumActual / (i + 1))
+            dyt = predicted - expValue
+            dsxx += math.pow(dxt, 2)
+            dsyy += math.pow(dyt, 2)
+            dsxy += dxt * dyt
     
     standardDeviation = math.sqrt(standardDeviationAccum / length)
     
-    [standardDeviation, upperDeviation, lowerDeviation]
+    rmse = math.sqrt(sumSquaredError / length)
+    rmpe = (sumPercentageError / length) * 100
+    pearsonsR = dsxx == 0 or dsyy == 0 ? 0 : dsxy / math.sqrt(dsxx * dsyy)
+    rSquared = math.pow(pearsonsR, 2)
+    mae = sumSquaredError / length
+    mape = rmpe
+    
+    [standardDeviation, upperDeviation, lowerDeviation, rmse, rmpe, rSquared, pearsonsR, mae, mape]
 
 // ------------------------------------------------------------------
 // Visualization of Regression, Forecast & Top/Bottom Bounds
@@ -263,6 +347,17 @@ extendLineType = switch
     extendLeftInput => extend.left
     extendRightInput => extend.right
     => extend.none
+
+performanceTablePosition = switch tablePosition
+    'Top Left' => position.top_left
+    'Top Center' => position.top_center
+    'Top Right' => position.top_right
+    'Middle Left' => position.middle_left
+    'Middle Center' => position.middle_center
+    'Middle Right' => position.middle_right
+    'Bottom Left' => position.bottom_left
+    'Bottom Center' => position.bottom_center
+    => position.bottom_right
 
 // ? Helper function(s) to draw objects into screen
 
@@ -300,6 +395,130 @@ createUpdateFill(
         else
             linefill.set_color(array.get(fillArray, index), color.new(fillColor, transparency))
 
+// ? Assess model fit's quality for qualititave assessment
+
+assessFitQuality(rSquared) =>
+    fitQuality = 'Poor Fit'
+    textBgColor = color.new(color.red, 85)
+
+    if rSquared > 0.8
+        fitQuality := 'Excellent Fit'
+        textBgColor := color.new(color.green, 65)
+    else if rSquared > 0.6
+        fitQuality := 'Good Fit'
+        textBgColor := color.new(color.green, 85)
+    else if rSquared > 0.4
+        fitQuality := 'Moderate Fit'
+        textBgColor := color.new(color.yellow, 85)
+    
+    [fitQuality, textBgColor]
+
+assessModelCorrelation(pearsonsR) =>
+    correlation = ''
+    textBgColor = color.new(color.red, 30)
+
+    if na(pearsonsR)
+        correlation := '# N/A'
+    else if math.abs(pearsonsR) > 0.9
+        correlation := 'Very Strong'
+        textBgColor := color.new(color.green, 65)
+    else if math.abs(pearsonsR) > 0.7
+        correlation := 'Strong'
+        textBgColor := color.new(color.green, 85)
+    else if math.abs(pearsonsR) > 0.5
+        correlation := 'Moderate'
+        textBgColor := color.new(color.yellow, 85)
+    else if math.abs(pearsonsR) > 0.3
+        correlation := 'Weak'
+        textBgColor := color.new(color.red, 85)
+    else
+        correlation := 'Very Weak'
+        textBgColor := color.new(color.red, 65)
+    
+    correlation += ' Correlation'
+    // calculate the correlation direction also
+    direction = pearsonsR > 0 ? 'POSITIVE' : pearsonsR < 0 ? 'NEGATIVE' : 'NO'
+
+    [correlation, textBgColor, direction]
+
+// ? Function to draw performance table
+
+drawPerformanceTable(rSquared, pearsonsR, rmse, rmpe, mape) =>
+    [fitQuality, fitQualityColor] = assessFitQuality(rSquared)
+    [correlation, correlationColor, correlationDirection] = assessModelCorrelation(pearsonsR)
+
+    tbTxtSize = size.small
+    tbTxtHCol = color.white
+    tbTxtNCol = color.black
+
+    tbHCBgol = color.new(color.blue, 0)
+    tbRBgCol = color.new(color.gray, 90)
+
+    var table performanceTable = table.new(performanceTablePosition, 2, 8, border_width = 1)
+
+    table.cell(
+        performanceTable, 0, 0, 'Per. Metric'
+        , text_color = tbTxtHCol, bgcolor = tbHCBgol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 0, 'Metric Value'
+        , text_color = tbTxtHCol, bgcolor = tbHCBgol, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 1, 'RMSE'
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 1, str.tostring(rmse, '#.###')
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 2, 'RMPE (%)'
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 2, str.tostring(rmpe, '#.###')
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 3, 'R²'
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 3, str.tostring(rSquared, '#.###')
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 4, 'MAPE (%)'
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 4, str.tostring(mape, '#.###')
+        , text_color = tbTxtNCol, bgcolor = tbRBgCol, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 5, 'Fit Quality'
+        , text_color = tbTxtHCol, bgcolor = tbTxtNCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 5, fitQuality
+        , text_color = tbTxtNCol, bgcolor = fitQualityColor, text_size = tbTxtSize
+    )
+
+    table.cell(
+        performanceTable, 0, 6, 'Model Correlation'
+        , text_color = tbTxtHCol, bgcolor = tbTxtNCol, text_size = tbTxtSize
+    )
+    table.cell(
+        performanceTable, 1, 6, correlation + ' (' + correlationDirection + ')'
+        , text_color = tbTxtNCol, bgcolor = correlationColor, text_size = tbTxtSize
+    )
+
 // ? Draw On Graph - Based on Regression Type
 
 switch regressionType
@@ -316,7 +535,7 @@ switch regressionType
             , color.new(color.black, 0)
         )
 
-        [standardDeviation, pearsonsR, upperDeviation, lowerDeviation] = linearDeviation(
+        [standardDeviation, pearsonsR, upperDeviation, lowerDeviation, rmse, rmpe, rSquared, mae, mape] = linearDeviation(
             dataSource, lookbackPeriod, slope, average, intercept
         )
 
@@ -376,6 +595,9 @@ switch regressionType
                 , textcolor = color.new(color.black, 0)
                 , size = size.normal, style = label.style_label_up
             )
+        
+        if showPerformanceTable and not na(rmse)
+            drawPerformanceTable(rSquared, pearsonsR, rmse, rmpe, mape)
 
     'exponential' =>
         [slope, average, intercept] = exponentialRegression(dataSource, lookbackPeriod)
@@ -390,7 +612,7 @@ switch regressionType
             , color.new(color.black, 0)
         )
 
-        [standardDeviation, upperDeviation, lowerDeviation] = exponentialDeviation(
+        [standardDeviation, upperDeviation, lowerDeviation, rmse, rmpe, rSquared, pearsonsR, mae, mape] = exponentialDeviation(
             dataSource, lookbackPeriod, slope, average, intercept
         )
 
@@ -438,5 +660,8 @@ switch regressionType
                     , baseLine, array.get(lowerChannelsExp, i)
                     , colorLowerChannel, gradientTransparency
                 )
+        
+        if showPerformanceTable and not na(rmse)
+            drawPerformanceTable(rSquared, pearsonsR, rmse, rmpe, mape)
 
     => display.none
