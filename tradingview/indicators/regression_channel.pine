@@ -1,8 +1,8 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // Copywright © 2026 ZenithClown (Debmalya Pramanik) | https://zenithclown.github.io/ | https://www.linkedin.com/in/dpramanik/
-//
+
 //@version=6
-//
+
 // ==================================================================
 // OBJECTTIVE: Create a Regression Channel & Forward Forecast
 //
@@ -19,7 +19,12 @@
 indicator('Regression Channel', overlay = true)
 
 // ------------------------------------------------------------------
-// INPUT(s) for Regression Channel Calculation(s)
+// INPUT(s) for Regression Channel & Calculation(s)
+//
+// Currently the model supports two types of regression channels -
+// (i) `linear` and (ii) `exponential` channels. Check advanced
+// documentation for more details:
+// https://fincy.readthedocs.io/en/latest/tradingview/index.html
 // ------------------------------------------------------------------
 
 regressionType = input.string(
@@ -31,15 +36,11 @@ regressionType = input.string(
 
 dataSource = input.source(close, 'Data Source')
 
-// Lookback and Forecast Period Settings
-
 lookbackPeriod = input.int(
     100, 'Lookback Period (No. of Candels)', minval = 2, step = 1
     , group = 'Model Settings'
     , tooltip = 'Setting a value >= 5000 may result in a slow performance.'
 )
-
-// Channel Settings, allow dynamic upper and lower channel controls
 
 showUpperChannel = input.bool(
     true, 'Show Upper Deviation Channel'
@@ -78,19 +79,14 @@ nTopBottom = input.int(
 isLinearModel = regressionType == 'linear' ? true : false
 isExponentialModel = regressionType == 'exponential' ? true : false
 
-// Inputs for Linear Regression Model
-
 showPearsonInput = input.bool(
     false, 'Show Pearsons R', active = isLinearModel
     , group = 'Display Settings (Linear Model)'
 )
 
-// Settings for Performance Table
-
 showPerformanceTable = input.bool(
     true, 'Performance Table'
-    , group = 'Display Settings'
-    , inline = 'Performance Table'
+    , group = 'Display Settings', inline = 'Performance Table'
     , tooltip = 'Display performance metrics and model fit quality.'
 )
 
@@ -101,11 +97,8 @@ tablePosition = input.string(
         'Middle Left', 'Middle Center', 'Middle Right',
         'Bottom Left', 'Bottom Center', 'Bottom Right'
     ]
-    , group = 'Display Settings'
-    , inline = 'Performance Table'
+    , group = 'Display Settings', inline = 'Performance Table'
 )
-
-// General Display - Line Extensions
 
 extendLeftInput = input.bool(
     false, 'Extend Lines towards Left'
@@ -134,12 +127,6 @@ colorLowerChannel = input.color(
 
 // ------------------------------------------------------------------
 // Function(s)/Calculation(s) for Linear Regression & Deviation
-//
-// linearRegression - Function to calculate linear regression values,
-// namely the slope and intercept. The function uses `barstate.islast`
-// to prevent the model to recalculate on every candel (thus reducing
-// unnecessary load time) and calculates only when we've reached the
-// end of the loop.
 // ------------------------------------------------------------------
 
 linearRegression(source, length) =>
@@ -245,11 +232,6 @@ linearDeviation(source, length, slope, average, intercept) =>
 
 // ------------------------------------------------------------------
 // Function(s)/Calculation(s) for Exponential Regression & Deviation
-//
-// exponentialRegression - Function to calculate exponential
-// regression values, which can be used to form a baseline. An
-// exponential regression line maybe useful in certain instruments
-// like the crypto currencies/forex where volatility is much higher.
 // ------------------------------------------------------------------
 
 exponentialRegression(source, length) =>
@@ -359,7 +341,9 @@ performanceTablePosition = switch tablePosition
     'Bottom Center' => position.bottom_center
     => position.bottom_right
 
-// ? Helper function(s) to draw objects into screen
+// ------------------------------------------------------------------
+// Helper Function(s) to Draw Lines/Gradients on the Overlay Graphs
+// ------------------------------------------------------------------
 
 createUpdateLine(existingLine, x1, y1, x2, y2, lineColor) =>
     if na(existingLine) and not na(y1)
@@ -395,7 +379,9 @@ createUpdateFill(
         else
             linefill.set_color(array.get(fillArray, index), color.new(fillColor, transparency))
 
-// ? Assess model fit's quality for qualititave assessment
+// ------------------------------------------------------------------
+// Model Fit Assessment Function(s) & Performance Table Drawing
+// ------------------------------------------------------------------
 
 assessFitQuality(rSquared) =>
     fitQuality = 'Poor Fit'
@@ -440,8 +426,6 @@ assessModelCorrelation(pearsonsR) =>
     direction = pearsonsR > 0 ? 'POSITIVE' : pearsonsR < 0 ? 'NEGATIVE' : 'NO'
 
     [correlation, textBgColor, direction]
-
-// ? Function to draw performance table
 
 drawPerformanceTable(rSquared, pearsonsR, rmse, rmpe, mape) =>
     [fitQuality, fitQualityColor] = assessFitQuality(rSquared)
@@ -519,7 +503,9 @@ drawPerformanceTable(rSquared, pearsonsR, rmse, rmpe, mape) =>
         , text_color = tbTxtNCol, bgcolor = correlationColor, text_size = tbTxtSize
     )
 
-// ? Draw On Graph - Based on Regression Type
+// ------------------------------------------------------------------
+// Core Function to Draw Overlay Graph based on User Inputs
+// ------------------------------------------------------------------
 
 switch regressionType
     'linear' =>
