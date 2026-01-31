@@ -14,6 +14,9 @@ This directory lists all the indicators, strategies etc. which are either alread
 The pine scripts are defined with a `.pine` extension, and as on 29.01.2026 the scripts are v6 compatible, which is the latest
 version. Check [PineScript Documentation](https://www.tradingview.com/pine-script-docs/welcome/) for more information.
 
+We're moving all the documents under [Project FinCY Documentation](https://fincy.readthedocs.io/en/latest/tradingview/index.html).
+Equivalent Python codes, implementations and usages are discussed in the documentation.
+
 ## Getting Started
 
 The indicators, strategies etc. are published in TradingView. To add the custom indicator or strategies use the indicators
@@ -51,9 +54,9 @@ indicators are displayed on the chart as lines, columns, points, geometric figur
 
 <div align = "center">
 
-| Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
-| :---: | :---: | :---: | --- |
-| **ATR SL/Profit Trailing** (ATR Bands) | 🔒🔑 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://www.tradingview.com/script/fu7CCmaC-ATR-SL-Profit-Trailing/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/atr_bands.pine) | A simple script to *overlay* ATR bands using a custom multiplier over the chart for quick calculation. |
+| Script Name | Publication Settings | TV Pine Script | Python Package |
+| :---: | :---: | :---: | :---: |
+| **ATR SL/Profit Trailing** (ATR Bands) | 🔒🔑 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://www.tradingview.com/script/fu7CCmaC-ATR-SL-Profit-Trailing/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/atr_bands.pine) | |
 | **Regression Channels** | 👥🌐 | [![tvl](https://img.shields.io/badge/--black?logo=tradingview&style=plastic)](https://in.tradingview.com/script/Kr4HNxg2-Regression-Channel/) [![ghl](https://img.shields.io/badge/--black?logo=github&style=plastic)](./indicators/regression_channel.pine) | |
 
 </div>
@@ -65,8 +68,8 @@ data and (ii) can send/execute buy/sell orders for an instrument.
 
 <div align = "center">
 
-| Script Name | Publication Settings | Additional Link(s) | Additional Reamrk(s) |
-| :---: | :---: | :---: | --- |
+| Script Name | Publication Settings | TV Pine Script | Python Package |
+| :---: | :---: | :---: | :---: |
 
 </div>
 
